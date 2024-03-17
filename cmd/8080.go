@@ -41,6 +41,7 @@ var rootCmd = &cobra.Command{
 		ebiten.SetTPS(ebiten.SyncWithFPS)
 
 		vm := emulator.NewCPU8080(&data)
+		vm.Logger = logger
 
 		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
 			logger.Fatal(err)
