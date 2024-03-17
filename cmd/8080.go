@@ -2,21 +2,52 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/braheezy/8080/internal/emulator"
+	"github.com/charmbracelet/log"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:  "8080 <rom>",
-	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		emulator.Run(args[0])
-	},
+var debug bool
+
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Show debug messages")
 }
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+var rootCmd = &cobra.Command{
+	Use:  "8080 <rom>",
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		logger := newDefaultLogger()
+		if debug {
+			logger.SetLevel(log.DebugLevel)
+		}
+
+		fileName := filepath.Base(args[0])
+		data, err := os.ReadFile(args[0])
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		ebiten.SetWindowTitle(fileName)
+		ebiten.SetTPS(ebiten.SyncWithFPS)
+
+		vm := emulator.NewCPU8080(&data)
+
+		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
+			logger.Fatal(err)
+		}
+	},
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: true,
+	},
+	SilenceUsage: true,
 }
