@@ -96,7 +96,7 @@ run: $(BIN)
 	@exec $? $(TEST_FILE)
 
 debug:
-	@dlv debug --listen ":$(DLV_PORT)" --headless $(BUILD_ENTRY)
+	@go run main.go -d invaders
 
 install: $(BIN)
 	@echo -e "$(YELLOW)🚀 Installing $(BIN) to $(GOPATH)/bin...$(END)"
