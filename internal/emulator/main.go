@@ -46,6 +46,29 @@ type flags struct {
 	P bool
 }
 
+func auxCarrySub(value, subtrahend byte) bool {
+	// Check if borrow is needed from higher nibble to lower nibble
+	return (value & 0xF) < (subtrahend & 0xF)
+}
+func carrySub(value, subtrahend byte) bool {
+	return value < subtrahend
+}
+
+func auxCarryAdd(a, b byte) bool {
+	// Check if carry is needed from higher nibble to lower nibble
+	return (a & 0xF) > (b & 0xF)
+}
+
+func parity(x uint16) bool {
+	y := x ^ (x >> 1)
+	y = y ^ (y >> 2)
+	y = y ^ (y >> 4)
+	y = y ^ (y >> 8)
+
+	// Rightmost bit of y holds the parity value
+	// if (y&1) is 1 then parity is odd else even
+	return y&1 > 0
+}
 func (fl *flags) setZ(value uint16) {
 	fl.Z = value == 0
 }
@@ -54,6 +77,9 @@ func (fl *flags) setS(value uint16) {
 }
 func (fl *flags) setP(value uint16) {
 	fl.P = parity(value)
+}
+func (fl *flags) setC(value, subtrahend uint16) {
+	fl.C = value < subtrahend
 }
 
 type opcodeExec func([]byte)
@@ -85,6 +111,7 @@ func NewCPU8080(program *[]byte) *CPU8080 {
 		0xC3: vm.jump,
 		0xC9: vm.ret,
 		0xCD: vm.call,
+		0xFE: vm.cmp,
 	}
 
 	return vm

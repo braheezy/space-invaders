@@ -54,26 +54,6 @@ func toUint16(code *[]byte) uint16 {
 	return uint16((*code)[1])<<8 | uint16((*code)[0])
 }
 
-func auxCarrySub(a, b byte) bool {
-	// Check if borrow is needed from higher nibble to lower nibble
-	return (a & 0xF) < (b & 0xF)
-}
-
-// func auxCarryAdd(a, b byte) bool {
-// 	// Check if carry is needed from higher nibble to lower nibble
-// 	return (a & 0xF) > (b & 0xF)
-// }
-
-func parity(x uint16) bool {
-	y := x ^ (x >> 1)
-	y = y ^ (y >> 2)
-	y = y ^ (y >> 4)
-	y = y ^ (y >> 8)
-
-	// Rightmost bit of y holds the parity value
-	// if (y&1) is 1 then parity is odd else even
-	return y&1 > 0
-}
 func (vm *CPU8080) performMidScreenInterrupt() {
 	// Implement mid-screen interrupt tasks here
 }
@@ -221,4 +201,20 @@ func (vm *CPU8080) moveI_HL(data []byte) {
 func (vm *CPU8080) move_HA(data []byte) {
 	vm.Logger.Debugf("[7E] LD  \tA,H")
 	vm.registers.A = vm.registers.H
+}
+
+// CPI D8: Compare 8-bit immediate value with accumulator.
+func (vm *CPU8080) cmp(data []byte) {
+	vm.Logger.Debugf("[FE] CP  \t$%02X", data[0])
+	result := uint16(vm.registers.A) - uint16(data[0])
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.C = carrySub(vm.registers.A, data[0])
+	vm.flags.H = auxCarrySub(vm.registers.A, data[0])
+	vm.flags.setP(result)
+
+	vm.registers.A -= data[0]
+	vm.pc++
 }
