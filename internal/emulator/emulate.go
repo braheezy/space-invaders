@@ -1,8 +1,16 @@
 package emulator
 
-func (vm *CPU8080) nextOpCode() {
+import (
+	"time"
+)
 
-	for {
+func (vm *CPU8080) runCycles(cycleCount int) {
+	startTime := time.Now()
+
+	for vm.cycleCount < cycleCount {
+		if int(vm.pc) >= vm.programSize {
+			break
+		}
 		currentCode := vm.memory[vm.pc : vm.pc+3]
 
 		op := currentCode[0]
@@ -14,6 +22,11 @@ func (vm *CPU8080) nextOpCode() {
 		} else {
 			vm.Logger.Fatalf("Unsupported opcode: %02X", op)
 		}
+	}
+
+	elapsed := time.Since(startTime)
+	if remaining := (17 * time.Millisecond) - elapsed; remaining > 0 {
+		time.Sleep(remaining)
 	}
 
 }
@@ -41,6 +54,13 @@ func parity(x uint16) bool {
 	// Rightmost bit of y holds the parity value
 	// if (y&1) is 1 then parity is odd else even
 	return y&1 > 0
+}
+func (vm *CPU8080) performMidScreenInterrupt() {
+	// Implement mid-screen interrupt tasks here
+}
+
+func (vm *CPU8080) performFullScreenInterrupt() {
+	// Implement full-screen interrupt tasks here
 }
 
 // NOP: No operation.
@@ -122,24 +142,28 @@ func (vm *CPU8080) loadAXD(data []byte) {
 // MOV M, A: Move value from accumulator into register pair H.
 func (vm *CPU8080) storeHLA(data []byte) {
 	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
-	vm.Logger.Debugf("[22] LD  \t(HL),A")
+	vm.Logger.Debugf("[77] LD  \t(HL),A ($%04X)", address)
 	vm.memory[address] = vm.registers.A
 	vm.cycleCount += 5
 }
 
 // INC H: Increment register pair H.
-func (vm *CPU8080) incHL(data []byte) {
-	vm.Logger.Debugf("[23] INC \tHL")
-	vm.registers.H++
-	vm.registers.L++
+func (vm *CPU8080) inxHL(data []byte) {
+	vm.Logger.Debugf("[23] INX \tHL")
+	hl := toUint16(&[]byte{vm.registers.H, vm.registers.L})
+	hl++
+	vm.registers.H = byte(hl >> 8)
+	vm.registers.L = byte(hl & 0xFF)
 	vm.cycleCount++
 }
 
 // INC D: Increment register pair D.
-func (vm *CPU8080) incDE(data []byte) {
-	vm.Logger.Debugf("[13] INC \tDE")
-	vm.registers.D++
-	vm.registers.E++
+func (vm *CPU8080) inxDE(data []byte) {
+	vm.Logger.Debugf("[23] INX \tDE")
+	de := toUint16(&[]byte{vm.registers.D, vm.registers.E})
+	de++
+	vm.registers.H = byte(de >> 8)
+	vm.registers.L = byte(de & 0xFF)
 	vm.cycleCount++
 }
 
@@ -161,13 +185,13 @@ func (vm *CPU8080) decB(data []byte) {
 // JNZ addr: Jump if not zero.
 func (vm *CPU8080) jumpNZ(data []byte) {
 	operand := toUint16(&data)
-	vm.Logger.Debugf("[20] JP  \tNZ,$%04X", operand)
+	vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", operand)
 	if !vm.flags.Z {
 		vm.pc = operand
 	} else {
 		vm.pc += 2
 	}
-	vm.cycleCount++
+	vm.cycleCount += 2
 }
 
 // RET: Return from subroutine.
@@ -175,5 +199,4 @@ func (vm *CPU8080) ret(data []byte) {
 	vm.Logger.Debugf("[C9] RET")
 	vm.pc = toUint16(&[]byte{vm.memory[vm.sp+1], vm.memory[vm.sp]})
 	vm.sp += 2
-	panic("stop")
 }

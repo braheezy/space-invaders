@@ -38,7 +38,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		ebiten.SetWindowTitle(fileName)
-		// ebiten.SetTPS(ebiten.SyncWithFPS)
+		ebiten.SetTPS(60)
 
 		vm := emulator.NewCPU8080(&data)
 		vm.Logger = logger

@@ -73,20 +73,24 @@ func NewCPU8080(program *[]byte) *CPU8080 {
 		0x05: vm.decB,
 		0x06: vm.moveB,
 		0x11: vm.loadDE,
-		0x13: vm.incDE,
+		0x13: vm.inxDE,
 		0x1A: vm.loadAXD,
 		0x21: vm.loadHL,
-		0x23: vm.incHL,
+		0x23: vm.inxHL,
 		0x31: vm.loadSP,
 		0x77: vm.storeHLA,
 		0xC2: vm.jumpNZ,
 		0xC3: vm.jump,
-		// 0xC9: vm.ret,
+		0xC9: vm.ret,
 		0xCD: vm.call,
 	}
 
 	return vm
 }
+
+const (
+	cyclesPerFrame = 33334 // Total cycles per frame, split into two halves
+)
 
 func (vm *CPU8080) Update() error {
 
@@ -94,10 +98,12 @@ func (vm *CPU8080) Update() error {
 		return ebiten.Termination
 	}
 
-	vm.nextOpCode()
-	if int(vm.pc) == vm.programSize {
-		return ebiten.Termination
-	}
+	vm.cycleCount = 0 // Reset cycle count
+	vm.runCycles(cyclesPerFrame / 2)
+	vm.performMidScreenInterrupt()
+
+	vm.runCycles(cyclesPerFrame)
+	vm.performFullScreenInterrupt()
 
 	return nil
 }
