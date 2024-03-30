@@ -95,7 +95,7 @@ func (vm *CPU8080) jump(data []byte) {
 }
 
 // LXI SP, D16: Load 16-bit immediate value into register pair SP.
-func (vm *CPU8080) loadSP(data []byte) {
+func (vm *CPU8080) load_SP(data []byte) {
 	operand := toUint16(&data)
 	vm.Logger.Debugf("[31] LD  \tSP,$%04X", operand)
 	vm.sp = operand
@@ -103,7 +103,7 @@ func (vm *CPU8080) loadSP(data []byte) {
 }
 
 // LXI B, D16: Load 16-bit immediate value into register pair B.
-func (vm *CPU8080) loadBC(data []byte) {
+func (vm *CPU8080) load_BC(data []byte) {
 	vm.Logger.Debugf("[01] LD  \tB,$%04X", toUint16(&data))
 	vm.registers.C = data[0]
 	vm.registers.B = data[1]
@@ -111,7 +111,7 @@ func (vm *CPU8080) loadBC(data []byte) {
 }
 
 // MVI B, D8: Move 8-bit immediate value into register B.
-func (vm *CPU8080) moveB(data []byte) {
+func (vm *CPU8080) moveI_B(data []byte) {
 	vm.Logger.Debugf("[06] LD  \tB,$%02X", data[0])
 	vm.registers.B = data[0]
 	vm.pc++
@@ -129,7 +129,7 @@ func (vm *CPU8080) call(data []byte) {
 }
 
 // LXI D, D16: Load 16-bit immediate value into register pair D.
-func (vm *CPU8080) loadDE(data []byte) {
+func (vm *CPU8080) load_DE(data []byte) {
 	vm.Logger.Debugf("[11] LD  \tDE,$%04X", toUint16(&data))
 	vm.registers.E = data[0]
 	vm.registers.D = data[1]
@@ -137,7 +137,7 @@ func (vm *CPU8080) loadDE(data []byte) {
 }
 
 // LXI H, D16: Load 16-bit immediate value into register pair H.
-func (vm *CPU8080) loadHL(data []byte) {
+func (vm *CPU8080) load_HL(data []byte) {
 	vm.Logger.Debugf("[21] LD  \tHL,$%04X", toUint16(&data))
 	vm.registers.L = data[0]
 	vm.registers.H = data[1]
@@ -145,21 +145,21 @@ func (vm *CPU8080) loadHL(data []byte) {
 }
 
 // LDAX D: Load value from address in register pair D into accumulator.
-func (vm *CPU8080) loadAXD(data []byte) {
+func (vm *CPU8080) load_DEA(data []byte) {
 	address := toUint16(&[]byte{vm.registers.D, vm.registers.E})
 	vm.Logger.Debugf("[1A] LD  \tA,(DE)")
 	vm.registers.A = vm.memory[address]
 }
 
 // MOV M, A: Move value from accumulator into register pair H.
-func (vm *CPU8080) storeHLA(data []byte) {
+func (vm *CPU8080) store_HLA(data []byte) {
 	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	vm.Logger.Debugf("[77] LD  \t(HL),A ($%04X)", address)
 	vm.memory[address] = vm.registers.A
 }
 
 // INC H: Increment register pair H.
-func (vm *CPU8080) inxHL(data []byte) {
+func (vm *CPU8080) inc_HL(data []byte) {
 	vm.Logger.Debugf("[23] INC \tHL")
 	hl := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	hl++
@@ -168,7 +168,7 @@ func (vm *CPU8080) inxHL(data []byte) {
 }
 
 // INC D: Increment register pair D.
-func (vm *CPU8080) inxDE(data []byte) {
+func (vm *CPU8080) inc_DE(data []byte) {
 	vm.Logger.Debugf("[13] INC \tDE")
 	de := toUint16(&[]byte{vm.registers.D, vm.registers.E})
 	de++
@@ -177,7 +177,7 @@ func (vm *CPU8080) inxDE(data []byte) {
 }
 
 // DCR B: Decrement register B.
-func (vm *CPU8080) decB(data []byte) {
+func (vm *CPU8080) dec_B(data []byte) {
 	vm.Logger.Debugf("[05] DEC \tB")
 	result := uint16(vm.registers.B) - 1
 
@@ -191,7 +191,7 @@ func (vm *CPU8080) decB(data []byte) {
 }
 
 // JNZ addr: Jump if not zero.
-func (vm *CPU8080) jumpNZ(data []byte) {
+func (vm *CPU8080) jump_NZ(data []byte) {
 	operand := toUint16(&data)
 	vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", operand)
 	if !vm.flags.Z {
@@ -210,9 +210,15 @@ func (vm *CPU8080) ret(data []byte) {
 }
 
 // MVI HL: Move 8-bit immediate value into address from register pair HL
-func (vm *CPU8080) moveHL(data []byte) {
+func (vm *CPU8080) moveI_HL(data []byte) {
 	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	vm.Logger.Debugf("[36] LD  \t(HL),$%02X", data[0])
 	vm.memory[address] = data[0]
 	vm.pc++
+}
+
+// MOV A,H: Move value from register H into accumulator.
+func (vm *CPU8080) move_HA(data []byte) {
+	vm.Logger.Debugf("[7E] LD  \tA,H")
+	vm.registers.A = vm.registers.H
 }
