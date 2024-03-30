@@ -4,6 +4,25 @@ import (
 	"time"
 )
 
+var stateCounts = []int{
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, // 00..0f
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, // 00..1f
+	4, 10, 16, 5, 5, 5, 7, 4, 4, 10, 16, 5, 5, 5, 7, 4, // 20..2f
+	4, 10, 13, 5, 10, 10, 10, 4, 4, 10, 13, 5, 5, 5, 7, 4, // 30..3f
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, // 40..4f
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, // 50..5f
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, // 60..6f
+	7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 7, 5, // 70..7f
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // 80..8f
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // 90..9f
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // a0..af
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, // b0..bf
+	5, 10, 10, 10, 11, 11, 7, 11, 5, 10, 10, 10, 11, 17, 7, 11, // c0..cf
+	5, 10, 10, 10, 11, 11, 7, 11, 5, 10, 10, 10, 11, 17, 7, 11, // d0..df
+	5, 10, 10, 18, 11, 11, 7, 11, 5, 5, 10, 5, 11, 17, 7, 11, // e0..ef
+	5, 10, 10, 4, 11, 11, 7, 11, 5, 5, 10, 4, 11, 17, 7, 11, // f0..ff
+}
+
 func (vm *CPU8080) runCycles(cycleCount int) {
 	startTime := time.Now()
 
@@ -15,7 +34,7 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 
 		op := currentCode[0]
 		vm.pc++
-		vm.cycleCount++
+		vm.cycleCount += stateCounts[op]
 
 		if opcodeFunc, exists := vm.opcodeTable[op]; exists {
 			opcodeFunc(currentCode[1:])
@@ -73,7 +92,6 @@ func (vm *CPU8080) jump(data []byte) {
 	operand := toUint16(&data)
 	vm.Logger.Debugf("[C3] JMP \t$%04X", operand)
 	vm.pc = operand
-	vm.cycleCount += 2
 }
 
 // LXI SP, D16: Load 16-bit immediate value into register pair SP.
@@ -82,7 +100,6 @@ func (vm *CPU8080) loadSP(data []byte) {
 	vm.Logger.Debugf("[31] LD  \tSP,$%04X", operand)
 	vm.sp = operand
 	vm.pc += 2
-	vm.cycleCount += 2
 }
 
 // LXI B, D16: Load 16-bit immediate value into register pair B.
@@ -91,7 +108,6 @@ func (vm *CPU8080) loadBC(data []byte) {
 	vm.registers.C = data[0]
 	vm.registers.B = data[1]
 	vm.pc += 2
-	vm.cycleCount += 2
 }
 
 // MVI B, D8: Move 8-bit immediate value into register B.
@@ -99,18 +115,17 @@ func (vm *CPU8080) moveB(data []byte) {
 	vm.Logger.Debugf("[06] LD  \tB,$%02X", data[0])
 	vm.registers.B = data[0]
 	vm.pc++
-	vm.cycleCount++
 }
 
 // CALL addr: Call subroutine at address
 func (vm *CPU8080) call(data []byte) {
-	operand := toUint16(&data)
-	vm.Logger.Debugf("[CD] CALL\t$%04X", operand)
-	vm.pc = operand
-	vm.memory[vm.sp-1] = data[1]
-	vm.memory[vm.sp-2] = data[0]
+	jumpAddress := toUint16(&data)
+	returnAddress := vm.pc + 2
+	vm.Logger.Debugf("[CD] CALL\t$%04X", jumpAddress)
+	vm.memory[vm.sp-1] = byte(returnAddress >> 8)
+	vm.memory[vm.sp-2] = byte(returnAddress & 0xFF)
+	vm.pc = jumpAddress
 	vm.sp -= 2
-	vm.cycleCount += 5
 }
 
 // LXI D, D16: Load 16-bit immediate value into register pair D.
@@ -119,7 +134,6 @@ func (vm *CPU8080) loadDE(data []byte) {
 	vm.registers.E = data[0]
 	vm.registers.D = data[1]
 	vm.pc += 2
-	vm.cycleCount += 2
 }
 
 // LXI H, D16: Load 16-bit immediate value into register pair H.
@@ -128,7 +142,6 @@ func (vm *CPU8080) loadHL(data []byte) {
 	vm.registers.L = data[0]
 	vm.registers.H = data[1]
 	vm.pc += 2
-	vm.cycleCount += 2
 }
 
 // LDAX D: Load value from address in register pair D into accumulator.
@@ -136,7 +149,6 @@ func (vm *CPU8080) loadAXD(data []byte) {
 	address := toUint16(&[]byte{vm.registers.D, vm.registers.E})
 	vm.Logger.Debugf("[1A] LD  \tA,(DE)")
 	vm.registers.A = vm.memory[address]
-	vm.cycleCount += 2
 }
 
 // MOV M, A: Move value from accumulator into register pair H.
@@ -144,27 +156,24 @@ func (vm *CPU8080) storeHLA(data []byte) {
 	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	vm.Logger.Debugf("[77] LD  \t(HL),A ($%04X)", address)
 	vm.memory[address] = vm.registers.A
-	vm.cycleCount += 5
 }
 
 // INC H: Increment register pair H.
 func (vm *CPU8080) inxHL(data []byte) {
-	vm.Logger.Debugf("[23] INX \tHL")
+	vm.Logger.Debugf("[23] INC \tHL")
 	hl := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	hl++
 	vm.registers.H = byte(hl >> 8)
 	vm.registers.L = byte(hl & 0xFF)
-	vm.cycleCount++
 }
 
 // INC D: Increment register pair D.
 func (vm *CPU8080) inxDE(data []byte) {
-	vm.Logger.Debugf("[23] INX \tDE")
+	vm.Logger.Debugf("[13] INC \tDE")
 	de := toUint16(&[]byte{vm.registers.D, vm.registers.E})
 	de++
 	vm.registers.H = byte(de >> 8)
 	vm.registers.L = byte(de & 0xFF)
-	vm.cycleCount++
 }
 
 // DCR B: Decrement register B.
@@ -179,7 +188,6 @@ func (vm *CPU8080) decB(data []byte) {
 	vm.flags.setP(result)
 
 	vm.registers.B--
-	vm.cycleCount++
 }
 
 // JNZ addr: Jump if not zero.
@@ -191,12 +199,20 @@ func (vm *CPU8080) jumpNZ(data []byte) {
 	} else {
 		vm.pc += 2
 	}
-	vm.cycleCount += 2
 }
 
 // RET: Return from subroutine.
 func (vm *CPU8080) ret(data []byte) {
-	vm.Logger.Debugf("[C9] RET")
-	vm.pc = toUint16(&[]byte{vm.memory[vm.sp+1], vm.memory[vm.sp]})
+	address := toUint16(&[]byte{vm.memory[vm.sp], vm.memory[vm.sp+1]})
+	vm.Logger.Debugf("[C9] RET \t($%04X)", address)
+	vm.pc = address
 	vm.sp += 2
+}
+
+// MVI HL: Move 8-bit immediate value into address from register pair HL
+func (vm *CPU8080) moveHL(data []byte) {
+	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
+	vm.Logger.Debugf("[36] LD  \t(HL),$%02X", data[0])
+	vm.memory[address] = data[0]
+	vm.pc++
 }

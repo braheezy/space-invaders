@@ -78,6 +78,7 @@ func NewCPU8080(program *[]byte) *CPU8080 {
 		0x21: vm.loadHL,
 		0x23: vm.inxHL,
 		0x31: vm.loadSP,
+		0x36: vm.moveHL,
 		0x77: vm.storeHLA,
 		0xC2: vm.jumpNZ,
 		0xC3: vm.jump,
