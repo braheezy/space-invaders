@@ -97,6 +97,20 @@ func (vm *CPU8080) moveI_B(data []byte) {
 	vm.pc++
 }
 
+// MVI C, D8: Move 8-bit immediate value into register C.
+func (vm *CPU8080) moveI_C(data []byte) {
+	vm.Logger.Debugf("[0E] LD  \tC,$%02X", data[0])
+	vm.registers.C = data[0]
+	vm.pc++
+}
+
+// MVI H, D8: Move 8-bit immediate value into register H.
+func (vm *CPU8080) moveI_H(data []byte) {
+	vm.Logger.Debugf("[26] LD  \tH,$%02X", data[0])
+	vm.registers.H = data[0]
+	vm.pc++
+}
+
 // CALL addr: Call subroutine at address
 func (vm *CPU8080) call(data []byte) {
 	jumpAddress := toUint16(&data)
@@ -132,10 +146,16 @@ func (vm *CPU8080) load_DEA(data []byte) {
 }
 
 // MOV M, A: Move value from accumulator into register pair H.
-func (vm *CPU8080) store_HLA(data []byte) {
+func (vm *CPU8080) load_HLA(data []byte) {
 	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	vm.Logger.Debugf("[77] LD  \t(HL),A ($%04X)", address)
 	vm.memory[address] = vm.registers.A
+}
+
+// MOV L,A: Load value from accumulator into register L.
+func (vm *CPU8080) move_AL(data []byte) {
+	vm.Logger.Debugf("[6F] LD  \tL,A")
+	vm.registers.A = vm.registers.L
 }
 
 // INC H: Increment register pair H.
@@ -217,4 +237,59 @@ func (vm *CPU8080) cmp(data []byte) {
 
 	vm.registers.A -= data[0]
 	vm.pc++
+}
+
+// PUSH D: Push register pair D onto stack.
+func (vm *CPU8080) push_DE(data []byte) {
+	vm.Logger.Debugf("[D5] PUSH\tDE")
+	vm.memory[vm.sp-1] = vm.registers.D
+	vm.memory[vm.sp-2] = vm.registers.E
+	vm.sp -= 2
+}
+
+// PUSH H: Push register pair H onto stack.
+func (vm *CPU8080) push_HL(data []byte) {
+	vm.Logger.Debugf("[E5] PUSH\tHL")
+	vm.memory[vm.sp-1] = vm.registers.H
+	vm.memory[vm.sp-2] = vm.registers.L
+	vm.sp -= 2
+}
+
+// DAD H: Add register pair H to register pair H.
+func (vm *CPU8080) dad_HL(data []byte) {
+	vm.Logger.Debugf("[29] ADD \tHL,HL")
+	hl := toUint16(&[]byte{vm.registers.H, vm.registers.L})
+	doubledHL := hl << 1
+
+	vm.flags.C = doubledHL > 0xFFFF
+
+	vm.registers.H = byte(doubledHL >> 8)
+	vm.registers.L = byte(doubledHL & 0xFF)
+}
+
+// DAD D: Add register pair D to register pair H.
+func (vm *CPU8080) dad_DE(data []byte) {
+	vm.Logger.Debugf("[19] ADD \tHL,DE")
+	de := toUint16(&[]byte{vm.registers.D, vm.registers.E})
+	doubledDE := de << 1
+
+	vm.flags.C = doubledDE > 0xFFFF
+
+	vm.registers.H = byte(doubledDE >> 8)
+	vm.registers.L = byte(doubledDE & 0xFF)
+}
+
+// XCHG: Exchange register pairs D and H.
+func (vm *CPU8080) xchg(data []byte) {
+	vm.Logger.Debugf("[EB] EX  \tDE,HL")
+	vm.registers.D, vm.registers.H = vm.registers.H, vm.registers.D
+	vm.registers.E, vm.registers.L = vm.registers.L, vm.registers.E
+}
+
+// POP H: Pop register pair H from stack.
+func (vm *CPU8080) pop_HL(data []byte) {
+	vm.Logger.Debugf("[F1] POP \tHL")
+	vm.registers.L = vm.memory[vm.sp]
+	vm.registers.H = vm.memory[vm.sp+1]
+	vm.sp += 2
 }
