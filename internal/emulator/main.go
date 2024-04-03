@@ -14,7 +14,7 @@ type CPU8080 struct {
 	memory [64 * 1024]byte
 	// programSize is the number of bytes in the program
 	programSize int
-	// registers are the CPU's 16-bit registers
+	// registers are the CPU's 8-bit registers
 	registers registers
 	// sp is the stack pointer, the index to memory
 	sp uint16
@@ -28,6 +28,8 @@ type CPU8080 struct {
 	Options CPU8080Options
 	// For timing sync
 	cycleCount int
+	// io is the struct holding IO device interface methods
+	IO HardwareIO
 }
 
 type CPU8080Options struct {
@@ -81,9 +83,10 @@ func (fl *flags) setP(value uint16) {
 
 type opcodeExec func([]byte)
 
-func NewCPU8080(program *[]byte) *CPU8080 {
+func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	vm := &CPU8080{
 		Logger: log.New(os.Stdout),
+		IO:     io,
 	}
 	// Put the program into memory at the location it wants to be
 	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
@@ -113,6 +116,7 @@ func NewCPU8080(program *[]byte) *CPU8080 {
 		0xC3: vm.jump,
 		0xC9: vm.ret,
 		0xCD: vm.call,
+		0xD3: vm.out,
 		0xD5: vm.push_DE,
 		0xE1: vm.pop_HL,
 		0xE5: vm.push_HL,

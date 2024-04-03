@@ -293,3 +293,12 @@ func (vm *CPU8080) pop_HL(data []byte) {
 	vm.registers.H = vm.memory[vm.sp+1]
 	vm.sp += 2
 }
+
+// OUT D8: Output accumulator to device at 8-bit immediate address.
+func (vm *CPU8080) out(data []byte) {
+	address := data[0]
+	deviceName := vm.IO.DeviceName(address)
+	vm.Logger.Debugf("[D3] OUT \t(%s),A", deviceName)
+	vm.pc++
+	vm.IO.Out(address, vm.registers.A)
+}

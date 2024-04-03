@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 		ebiten.SetWindowTitle(fileName)
 		ebiten.SetTPS(60)
 
-		vm := emulator.NewCPU8080(&data)
+		vm := emulator.NewCPU8080(&data, emulator.NewSpaceInvadersHardware())
 		vm.Logger = logger
 
 		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
