@@ -224,7 +224,7 @@ func (vm *CPU8080) ret(data []byte) {
 	vm.sp += 2
 }
 
-// MVI HL: Move 8-bit immediate value into address from register pair HL
+// MVI HL: Move 8-bit immediate value into memory address from register pair HL
 func (vm *CPU8080) moveI_HL(data []byte) {
 	address := toUint16(&[]byte{vm.registers.H, vm.registers.L})
 	vm.Logger.Debugf("[36] LD  \t(HL),$%02X", data[0])
@@ -280,7 +280,6 @@ func (vm *CPU8080) cmp(data []byte) {
 	vm.flags.H = auxCarrySub(vm.registers.A, data[0])
 	vm.flags.setP(result)
 
-	vm.registers.A -= data[0]
 	vm.pc++
 }
 
@@ -319,37 +318,37 @@ func (vm *CPU8080) push_AF(data []byte) {
 // DAD H: Add register pair H to register pair H.
 func (vm *CPU8080) dad_HL(data []byte) {
 	vm.Logger.Debugf("[29] ADD \tHL,HL")
-	hl := toUint16(&[]byte{vm.registers.H, vm.registers.L})
-	doubledHL := hl << 1
+	hl := toUint16(&[]byte{vm.registers.L, vm.registers.H})
+	doubledHL := uint32(hl) << 1
 
 	vm.flags.C = doubledHL > 0xFFFF
 
 	vm.registers.H = byte(doubledHL >> 8)
-	vm.registers.L = byte(doubledHL & 0xFF)
+	vm.registers.L = byte(doubledHL)
 }
 
 // DAD D: Add register pair D to register pair H.
 func (vm *CPU8080) dad_DE(data []byte) {
 	vm.Logger.Debugf("[19] ADD \tHL,DE")
-	de := toUint16(&[]byte{vm.registers.D, vm.registers.E})
-	doubledDE := de << 1
+	de := toUint16(&[]byte{vm.registers.E, vm.registers.D})
+	doubledDE := uint32(de) << 1
 
 	vm.flags.C = doubledDE > 0xFFFF
 
 	vm.registers.H = byte(doubledDE >> 8)
-	vm.registers.L = byte(doubledDE & 0xFF)
+	vm.registers.L = byte(doubledDE)
 }
 
 // DAD B: Add register pair B to register pair H.
 func (vm *CPU8080) dad_BC(data []byte) {
 	vm.Logger.Debugf("[09] ADD \tHL,BC")
-	bc := toUint16(&[]byte{vm.registers.B, vm.registers.C})
-	doubledBC := bc << 1
+	bc := toUint16(&[]byte{vm.registers.C, vm.registers.B})
+	doubledBC := uint32(bc) << 1
 
 	vm.flags.C = doubledBC > 0xFFFF
 
 	vm.registers.H = byte(doubledBC >> 8)
-	vm.registers.L = byte(doubledBC & 0xFF)
+	vm.registers.L = byte(doubledBC)
 }
 
 // XCHG: Exchange register pairs D and H.
