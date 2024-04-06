@@ -48,6 +48,34 @@ type flags struct {
 	P bool
 }
 
+// toByte packs flags according to the PSW layout to be pushed onto the stack.
+func (f *flags) toByte() byte {
+	var b byte
+	// Set the Sign flag in the highest bit (bit 7)
+	if f.S {
+		b |= 1 << 7
+	}
+	// Set the Zero flag in bit 6
+	if f.Z {
+		b |= 1 << 6
+	}
+	// Set the Auxiliary Carry flag in bit 4
+	if f.H {
+		b |= 1 << 4
+	}
+	// Set the Parity flag in bit 2
+	if f.P {
+		b |= 1 << 2
+	}
+	// Bit 1 is always 1
+	b |= 1 << 1
+	// Set the Carry flag in bit 0
+	if f.C {
+		b |= 1
+	}
+	return b
+}
+
 func carrySub(value, subtrahend byte) bool {
 	return value < subtrahend
 }
@@ -101,6 +129,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0x09: vm.dad_BC,
 		0x0D: vm.dec_C,
 		0x0E: vm.moveI_C,
+		0x0F: vm.rrc,
 		0x11: vm.load_DE,
 		0x13: vm.inc_DE,
 		0x19: vm.dad_DE,
@@ -111,9 +140,14 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0x29: vm.dad_HL,
 		0x31: vm.load_SP,
 		0x36: vm.moveI_HL,
+		0x56: vm.moveHL_D,
+		0x5E: vm.moveHL_E,
+		0x66: vm.moveHL_H,
 		0x6F: vm.move_AL,
 		0x77: vm.load_HLA,
+		0x7A: vm.move_DA,
 		0x7C: vm.move_HA,
+		0x7E: vm.moveHL_A,
 		0xC2: vm.jump_NZ,
 		0xC1: vm.pop_BC,
 		0xC3: vm.jump,
@@ -126,6 +160,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0xE1: vm.pop_HL,
 		0xE5: vm.push_HL,
 		0xEB: vm.xchg,
+		0xF5: vm.push_AF,
 		0xFE: vm.cmp,
 	}
 

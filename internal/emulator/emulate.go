@@ -232,10 +232,40 @@ func (vm *CPU8080) moveI_HL(data []byte) {
 	vm.pc++
 }
 
+// MOV E, HL: Move memory location pointed to by register pair HL into register E.
+func (vm *CPU8080) moveHL_E(data []byte) {
+	vm.Logger.Debugf("[5E] LD  \tE,(HL)")
+	vm.registers.E = vm.memory[toUint16(&[]byte{vm.registers.H, vm.registers.L})]
+}
+
+// MOV D, HL: Move memory location pointed to by register pair HL into register D.
+func (vm *CPU8080) moveHL_D(data []byte) {
+	vm.Logger.Debugf("[56] LD  \tD,(HL)")
+	vm.registers.D = vm.memory[toUint16(&[]byte{vm.registers.H, vm.registers.L})]
+}
+
+// MOV A, HL: Move memory location pointed to by register pair HL into register A.
+func (vm *CPU8080) moveHL_A(data []byte) {
+	vm.Logger.Debugf("[7E] LD  \tA,(HL)")
+	vm.registers.A = vm.memory[toUint16(&[]byte{vm.registers.H, vm.registers.L})]
+}
+
+// MOV H, HL: Move memory location pointed to by register pair HL into register H.
+func (vm *CPU8080) moveHL_H(data []byte) {
+	vm.Logger.Debugf("[66] LD  \tH,(HL)")
+	vm.registers.H = vm.memory[toUint16(&[]byte{vm.registers.H, vm.registers.L})]
+}
+
 // MOV A,H: Move value from register H into accumulator.
 func (vm *CPU8080) move_HA(data []byte) {
 	vm.Logger.Debugf("[7E] LD  \tA,H")
 	vm.registers.A = vm.registers.H
+}
+
+// MOV A,H: Move value from register D into accumulator.
+func (vm *CPU8080) move_DA(data []byte) {
+	vm.Logger.Debugf("[7C] LD  \tA,D")
+	vm.registers.A = vm.registers.D
 }
 
 // CPI D8: Compare 8-bit immediate value with accumulator.
@@ -275,6 +305,14 @@ func (vm *CPU8080) push_BC(data []byte) {
 	vm.Logger.Debugf("[C5] PUSH\tBC")
 	vm.memory[vm.sp-1] = vm.registers.B
 	vm.memory[vm.sp-2] = vm.registers.C
+	vm.sp -= 2
+}
+
+// PUSH AF: Push accumulator and flags onto stack.
+func (vm *CPU8080) push_AF(data []byte) {
+	vm.Logger.Debugf("[F5] PUSH\tAF")
+	vm.memory[vm.sp-1] = vm.registers.A
+	vm.memory[vm.sp-2] = vm.flags.toByte()
 	vm.sp -= 2
 }
 
@@ -352,4 +390,18 @@ func (vm *CPU8080) out(data []byte) {
 	vm.Logger.Debugf("[D3] OUT \t(%s),A", deviceName)
 	vm.pc++
 	vm.IO.Out(address, vm.registers.A)
+}
+
+// RRC: Rotate accumulator right.
+// The carry bit is set equal to the low-order
+// bit of the accumulator. The contents of the accumulator are
+// rotated one bit position to the right, with the low-order bit
+// being transferred to the high-order bit position of the
+// accumulator.
+func (vm *CPU8080) rrc(data []byte) {
+	vm.Logger.Debugf("[0F] RRC \tA")
+	// Isolate least significant bit to check for Carry
+	vm.flags.C = vm.registers.A&0x01 == 1
+	// Rotate accumulator right
+	vm.registers.A = (vm.registers.A >> 1) | (vm.registers.A << (8 - 1))
 }
