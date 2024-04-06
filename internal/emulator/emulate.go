@@ -1,6 +1,7 @@
 package emulator
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -39,7 +40,7 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 		if opcodeFunc, exists := vm.opcodeTable[op]; exists {
 			opcodeFunc(currentCode[1:])
 		} else {
-			vm.Logger.Fatalf("Unsupported opcode: %02X", op)
+			vm.Logger.Fatal("unsupported", "opcode", fmt.Sprintf("%02X", op), "cycleCount", vm.cycleCount)
 		}
 	}
 
@@ -190,6 +191,20 @@ func (vm *CPU8080) dec_B(data []byte) {
 	vm.registers.B--
 }
 
+// DCR C: Decrement register C.
+func (vm *CPU8080) dec_C(data []byte) {
+	vm.Logger.Debugf("[0D] DEC \tC")
+	result := uint16(vm.registers.C) - 1
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.H = auxCarrySub(vm.registers.C, 1)
+	vm.flags.setP(result)
+
+	vm.registers.C--
+}
+
 // JNZ addr: Jump if not zero.
 func (vm *CPU8080) jump_NZ(data []byte) {
 	operand := toUint16(&data)
@@ -255,6 +270,14 @@ func (vm *CPU8080) push_HL(data []byte) {
 	vm.sp -= 2
 }
 
+// PUSH B: Push register pair B onto stack.
+func (vm *CPU8080) push_BC(data []byte) {
+	vm.Logger.Debugf("[C5] PUSH\tBC")
+	vm.memory[vm.sp-1] = vm.registers.B
+	vm.memory[vm.sp-2] = vm.registers.C
+	vm.sp -= 2
+}
+
 // DAD H: Add register pair H to register pair H.
 func (vm *CPU8080) dad_HL(data []byte) {
 	vm.Logger.Debugf("[29] ADD \tHL,HL")
@@ -279,6 +302,18 @@ func (vm *CPU8080) dad_DE(data []byte) {
 	vm.registers.L = byte(doubledDE & 0xFF)
 }
 
+// DAD B: Add register pair B to register pair H.
+func (vm *CPU8080) dad_BC(data []byte) {
+	vm.Logger.Debugf("[09] ADD \tHL,BC")
+	bc := toUint16(&[]byte{vm.registers.B, vm.registers.C})
+	doubledBC := bc << 1
+
+	vm.flags.C = doubledBC > 0xFFFF
+
+	vm.registers.H = byte(doubledBC >> 8)
+	vm.registers.L = byte(doubledBC & 0xFF)
+}
+
 // XCHG: Exchange register pairs D and H.
 func (vm *CPU8080) xchg(data []byte) {
 	vm.Logger.Debugf("[EB] EX  \tDE,HL")
@@ -291,6 +326,22 @@ func (vm *CPU8080) pop_HL(data []byte) {
 	vm.Logger.Debugf("[F1] POP \tHL")
 	vm.registers.L = vm.memory[vm.sp]
 	vm.registers.H = vm.memory[vm.sp+1]
+	vm.sp += 2
+}
+
+// POP B: Pop register pair B from stack.
+func (vm *CPU8080) pop_BC(data []byte) {
+	vm.Logger.Debugf("[C1] POP \tBC")
+	vm.registers.C = vm.memory[vm.sp]
+	vm.registers.B = vm.memory[vm.sp+1]
+	vm.sp += 2
+}
+
+// POP D: Pop register pair D from stack.
+func (vm *CPU8080) pop_DE(data []byte) {
+	vm.Logger.Debugf("[D1] POP \tDE")
+	vm.registers.E = vm.memory[vm.sp]
+	vm.registers.D = vm.memory[vm.sp+1]
 	vm.sp += 2
 }
 
