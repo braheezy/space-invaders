@@ -185,6 +185,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0x7B: vm.move_EA,
 		0x7C: vm.move_HA,
 		0x7E: vm.moveHL_A,
+		0xAF: vm.xra_A,
 		0xC2: vm.jump_NZ,
 		0xC1: vm.pop_BC,
 		0xC3: vm.jump,

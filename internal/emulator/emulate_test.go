@@ -336,3 +336,74 @@ func TestADD(t *testing.T) {
 		})
 	}
 }
+
+func TestXRA(t *testing.T) {
+	tests := []struct {
+		name      string
+		initialA  byte // Initial value of the accumulator
+		reg       byte // Value of the register to XOR with
+		expectedA byte // Expected value of the accumulator after XOR
+		expectedZ bool // Expected Zero flag
+		expectedS bool // Expected Sign flag
+		expectedC bool // Expected Carry flag (always false after XOR)
+		expectedP bool // Expected Parity flag
+	}{
+		{
+			name:      "Zero Result",
+			initialA:  0xFF,
+			reg:       0xFF,
+			expectedA: 0x00,
+			expectedZ: true,
+			expectedS: false,
+			expectedC: false,
+			expectedP: true,
+		},
+		{
+			name:      "Non-zero Result, Even Parity",
+			initialA:  0xF0,
+			reg:       0x0F,
+			expectedA: 0xFF,
+			expectedZ: false,
+			expectedS: true,
+			expectedC: false,
+			expectedP: true, // 8 ones, even parity
+		},
+		{
+			name:      "Non-zero Result, Odd Parity",
+			initialA:  0b10101110,
+			reg:       0b00110011,
+			expectedA: 0b10011101,
+			expectedZ: false,
+			expectedS: true,
+			expectedC: false,
+			expectedP: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := &CPU8080{
+				registers: struct{ A, B, C, D, E, H, L byte }{A: tt.initialA},
+				flags:     flags{},
+			}
+
+			vm.xra(tt.reg)
+
+			if vm.registers.A != tt.expectedA {
+				t.Errorf("Expected accumulator value %02X, got %02X", tt.expectedA, vm.registers.A)
+			}
+			if vm.flags.Z != tt.expectedZ {
+				t.Errorf("Expected Zero flag %t, got %t", tt.expectedZ, vm.flags.Z)
+			}
+			if vm.flags.S != tt.expectedS {
+				t.Errorf("Expected Sign flag %t, got %t", tt.expectedS, vm.flags.S)
+			}
+			if vm.flags.C != tt.expectedC {
+				t.Errorf("Expected Carry flag %t, got %t", tt.expectedC, vm.flags.C)
+			}
+			if vm.flags.P != tt.expectedP {
+				t.Errorf("Expected Parity flag %t, got %t", tt.expectedP, vm.flags.P)
+			}
+		})
+	}
+}

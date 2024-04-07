@@ -478,3 +478,22 @@ func (vm *CPU8080) di(data []byte) {
 	vm.Logger.Debugf("[F3] DI")
 	vm.InterruptsEnabled = false
 }
+
+// xor performs Exclusive OR register with accumulator
+func (vm *CPU8080) xra(reg byte) {
+	result := uint16(vm.registers.A) ^ uint16(reg)
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.C = false
+	vm.flags.setP(result)
+
+	vm.registers.A = byte(result)
+}
+
+// XRA A: Exclusive-OR accumulator with accumulator.
+func (vm *CPU8080) xra_A(data []byte) {
+	vm.Logger.Debugf("[AF] XOR \tA")
+	vm.xra(vm.registers.A)
+}
