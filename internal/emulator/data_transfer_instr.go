@@ -16,6 +16,13 @@ func (vm *CPU8080) load_BC(data []byte) {
 	vm.pc += 2
 }
 
+// MVI A, D8: Move 8-bit immediate value into accumulator.
+func (vm *CPU8080) moveI_A(data []byte) {
+	vm.Logger.Debugf("[3E] LD  \tA,$%02X", data[0])
+	vm.registers.A = data[0]
+	vm.pc++
+}
+
 // MVI B, D8: Move 8-bit immediate value into register B.
 func (vm *CPU8080) moveI_B(data []byte) {
 	vm.Logger.Debugf("[06] LD  \tB,$%02X", data[0])
@@ -121,4 +128,20 @@ func (vm *CPU8080) move_DA(data []byte) {
 func (vm *CPU8080) move_EA(data []byte) {
 	vm.Logger.Debugf("[7B] LD  \tA,E")
 	vm.registers.A = vm.registers.E
+}
+
+// STA A16: Store accumulator in 16-bit immediate address.
+func (vm *CPU8080) store_A(data []byte) {
+	address := toUint16(&data)
+	vm.Logger.Debugf("[32] LD  \t$%04X,A", address)
+	vm.memory[address] = vm.registers.A
+	vm.pc += 2
+}
+
+// LDA A16: Load accumulator from 16-bit immediate address.
+func (vm *CPU8080) load_A(data []byte) {
+	address := toUint16(&data)
+	vm.Logger.Debugf("[32] LD  \t$%04X,A", address)
+	vm.registers.A = vm.memory[address]
+	vm.pc += 2
 }

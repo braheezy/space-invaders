@@ -1,5 +1,11 @@
 package emulator
 
+type InterruptCondition struct {
+	Cycle  int
+	Action func(*CPU8080)
+	Name   string
+}
+
 func (vm *CPU8080) handleInterrupt(opcode byte) {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
@@ -14,7 +20,7 @@ func (vm *CPU8080) handleInterrupt(opcode byte) {
 
 	// Calculate the address from the opcode (RST n: n*8)
 	address := uint16((opcode - 0xC7) / 8 * 8)
-	vm.Logger.Debugf("INTERRUPT--->$%04X", address)
+	vm.Logger.Debugf("INTE $%04X-->$%04X", vm.pc, address)
 
 	// Push the current PC onto the stack. Assumes a function exists to handle pushing words onto the stack.
 	vm.push(byte(vm.pc&0xFF), byte(vm.pc>>8)&0xFF)

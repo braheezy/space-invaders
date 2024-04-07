@@ -4,11 +4,6 @@ import (
 	"fmt"
 )
 
-type InterruptCondition struct {
-	Cycle  int
-	Action func(*CPU8080)
-}
-
 type HardwareIO interface {
 	In(addr byte) byte
 	Out(addr byte, data byte)

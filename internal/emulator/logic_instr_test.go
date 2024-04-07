@@ -147,3 +147,75 @@ func TestAND(t *testing.T) {
 		})
 	}
 }
+
+func TestANA(t *testing.T) {
+	tests := []struct {
+		name                string
+		initialAccumulator  byte
+		data                byte
+		expectedAccumulator byte
+		expectedZeroFlag    bool
+		expectedSignFlag    bool
+		expectedCarryFlag   bool
+		expectedParityFlag  bool
+	}{
+		{
+			name:                "AND with zero",
+			initialAccumulator:  0b10101010,
+			data:                0b00000000,
+			expectedAccumulator: 0b00000000,
+			expectedZeroFlag:    true,
+			expectedSignFlag:    false,
+			expectedCarryFlag:   false,
+			expectedParityFlag:  true, // Parity is even because the result has an even number of 1 bits (zero in this case).
+		},
+		{
+			name:                "AND with itself",
+			initialAccumulator:  0b10101010,
+			data:                0b10101010,
+			expectedAccumulator: 0b10101010,
+			expectedZeroFlag:    false,
+			expectedSignFlag:    true, // Sign bit is 1 because the result's most significant bit is 1.
+			expectedCarryFlag:   false,
+			expectedParityFlag:  true, // Parity is even  because the result has an even number of 1 bits.
+		},
+		{
+			name:                "AND resulting in non-zero without sign",
+			initialAccumulator:  0b11110000,
+			data:                0b01111111,
+			expectedAccumulator: 0b01110000,
+			expectedZeroFlag:    false,
+			expectedSignFlag:    false,
+			expectedCarryFlag:   false,
+			expectedParityFlag:  false, // Parity is odd.
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			vm := NewCPU8080(&[]byte{}, nil) // Assuming NewCPU8080 initializes the CPU state including flags and registers
+			vm.registers.A = tt.initialAccumulator
+
+			// Execute
+			vm.ana(tt.data)
+
+			// Verify accumulator and flags
+			if vm.registers.A != tt.expectedAccumulator {
+				t.Errorf("Expected accumulator %02x, got %02x", tt.expectedAccumulator, vm.registers.A)
+			}
+			if vm.flags.Z != tt.expectedZeroFlag {
+				t.Errorf("Expected zero flag %t, got %t", tt.expectedZeroFlag, vm.flags.Z)
+			}
+			if vm.flags.S != tt.expectedSignFlag {
+				t.Errorf("Expected sign flag %t, got %t", tt.expectedSignFlag, vm.flags.S)
+			}
+			if vm.flags.C != tt.expectedCarryFlag {
+				t.Errorf("Expected carry flag %t, got %t", tt.expectedCarryFlag, vm.flags.C)
+			}
+			if vm.flags.P != tt.expectedParityFlag {
+				t.Errorf("Expected parity flag %t, got %t", tt.expectedParityFlag, vm.flags.P)
+			}
+		})
+	}
+}

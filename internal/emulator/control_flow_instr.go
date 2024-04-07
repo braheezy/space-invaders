@@ -29,6 +29,17 @@ func (vm *CPU8080) jump_NZ(data []byte) {
 	}
 }
 
+// JZ addr: Jump if zero.
+func (vm *CPU8080) jump_Z(data []byte) {
+	operand := toUint16(&data)
+	vm.Logger.Debugf("[CA] JP  \tZ,$%04X", operand)
+	if vm.flags.Z {
+		vm.pc = operand
+	} else {
+		vm.pc += 2
+	}
+}
+
 // RET: Return from subroutine.
 func (vm *CPU8080) ret(data []byte) {
 	address := toUint16(&[]byte{vm.memory[vm.sp], vm.memory[vm.sp+1]})

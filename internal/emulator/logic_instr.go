@@ -1,6 +1,6 @@
 package emulator
 
-// xor performs Exclusive OR register with accumulator
+// xra performs Exclusive OR register with accumulator
 func (vm *CPU8080) xra(reg byte) {
 	result := uint16(vm.registers.A) ^ uint16(reg)
 
@@ -60,4 +60,23 @@ func (vm *CPU8080) cmp(data []byte) {
 	vm.flags.setP(result)
 
 	vm.pc++
+}
+
+// ana performs AND with data and accumulator, storing in accumulator.
+func (vm *CPU8080) ana(data byte) {
+	result := uint16(vm.registers.A) & uint16(data)
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.C = false
+	vm.flags.setP(result)
+
+	vm.registers.A = byte(result)
+}
+
+// ANA A: AND accumulator with accumulator.
+func (vm *CPU8080) ana_A(data []byte) {
+	vm.Logger.Debugf("[E6] AND \tA")
+	vm.ana(vm.registers.A)
 }

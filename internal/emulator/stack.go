@@ -41,7 +41,7 @@ func (vm *CPU8080) pop() (byte, byte) {
 
 // POP H: Pop register pair H from stack.
 func (vm *CPU8080) pop_HL(data []byte) {
-	vm.Logger.Debugf("[F1] POP \tHL")
+	vm.Logger.Debugf("[E1] POP \tHL")
 	vm.registers.L, vm.registers.H = vm.pop()
 }
 
@@ -63,5 +63,4 @@ func (vm *CPU8080) pop_AF(data []byte) {
 	var fl byte
 	fl, vm.registers.A = vm.pop()
 	vm.flags = *fromByte(fl)
-	vm.sp += 2
 }
