@@ -2,6 +2,8 @@ package emulator
 
 import (
 	"os"
+	"sync"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -27,9 +29,13 @@ type CPU8080 struct {
 	// Options are the current options to use on the emulator
 	Options CPU8080Options
 	// For timing sync
-	cycleCount int
-	// io is the struct holding IO device interface methods
-	IO HardwareIO
+	cycleCount  int
+	totalCycles int
+	// io is the struct holding Hardware device interface methods
+	Hardware          HardwareIO
+	mu                sync.Mutex // Mutex for thread-safe access to the CPU state
+	InterruptsEnabled bool
+	interruptRequest  chan byte
 }
 
 type CPU8080Options struct {
@@ -76,17 +82,31 @@ func (f *flags) toByte() byte {
 	return b
 }
 
+func fromByte(b byte) *flags {
+	return &flags{
+		S: b&(1<<7) != 0, // Check if the Sign flag bit (bit 7) is set
+		Z: b&(1<<6) != 0, // Check if the Zero flag bit (bit 6) is set
+		H: b&(1<<4) != 0, // Check if the Auxiliary Carry flag bit (bit 4) is set
+		P: b&(1<<2) != 0, // Check if the Parity flag bit (bit 2) is set
+		C: b&1 != 0,      // Check if the Carry flag bit (bit 0) is set
+	}
+}
+
 func carrySub(value, subtrahend byte) bool {
 	return value < subtrahend
+}
+
+func carryAdd(value, addend byte) bool {
+	return uint16(value)+uint16(addend) > 0xFF
 }
 
 func auxCarrySub(value, subtrahend byte) bool {
 	// Check if borrow is needed from higher nibble to lower nibble
 	return (value & 0xF) < (subtrahend & 0xF)
 }
-func auxCarryAdd(a, b byte) bool {
+func auxCarryAdd(value, addend byte) bool {
 	// Check if carry is needed from higher nibble to lower nibble
-	return (a & 0xF) > (b & 0xF)
+	return (value&0xF)+(addend&0xF) > 0xF
 }
 
 func parity(x uint16) bool {
@@ -97,7 +117,7 @@ func parity(x uint16) bool {
 
 	// Rightmost bit of y holds the parity value
 	// if (y&1) is 1 then parity is odd else even
-	return y&1 > 0
+	return y&1 == 0
 }
 func (fl *flags) setZ(value uint16) {
 	fl.Z = value == 0
@@ -109,12 +129,28 @@ func (fl *flags) setP(value uint16) {
 	fl.P = parity(value)
 }
 
+func (vm *CPU8080) StartInterruptRoutines() {
+	for _, condition := range vm.Hardware.InterruptConditions() {
+		go func(cond InterruptCondition) {
+			ticker := time.NewTicker(time.Duration(cond.Cycle) * time.Nanosecond)
+			for {
+				<-ticker.C
+				if vm.InterruptsEnabled && vm.cycleCount >= cond.Cycle {
+					cond.Action(vm)
+				}
+			}
+		}(condition)
+	}
+}
+
 type opcodeExec func([]byte)
 
 func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	vm := &CPU8080{
-		Logger: log.New(os.Stdout),
-		IO:     io,
+		Logger:            log.New(os.Stdout),
+		Hardware:          io,
+		interruptRequest:  make(chan byte, 1),
+		InterruptsEnabled: true,
 	}
 	// Put the program into memory at the location it wants to be
 	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
@@ -146,12 +182,14 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0x6F: vm.move_AL,
 		0x77: vm.load_HLA,
 		0x7A: vm.move_DA,
+		0x7B: vm.move_EA,
 		0x7C: vm.move_HA,
 		0x7E: vm.moveHL_A,
 		0xC2: vm.jump_NZ,
 		0xC1: vm.pop_BC,
 		0xC3: vm.jump,
 		0xC5: vm.push_BC,
+		0xC6: vm.add,
 		0xC9: vm.ret,
 		0xCD: vm.call,
 		0xD1: vm.pop_DE,
@@ -160,6 +198,10 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0xE1: vm.pop_HL,
 		0xE5: vm.push_HL,
 		0xEB: vm.xchg,
+		0xE6: vm.and,
+		0xF1: vm.pop_AF,
+		0xF3: vm.di,
+		0xFB: vm.ei,
 		0xF5: vm.push_AF,
 		0xFE: vm.cmp,
 	}
@@ -167,22 +209,14 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	return vm
 }
 
-const (
-	cyclesPerFrame = 33334 // Total cycles per frame, split into two halves
-)
-
 func (vm *CPU8080) Update() error {
 
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return ebiten.Termination
 	}
 
-	vm.cycleCount = 0 // Reset cycle count
-	vm.runCycles(cyclesPerFrame / 2)
-	vm.performMidScreenInterrupt()
-
-	vm.runCycles(cyclesPerFrame)
-	vm.performFullScreenInterrupt()
+	vm.cycleCount = 0
+	vm.runCycles(vm.Hardware.CyclesPerFrame())
 
 	return nil
 }

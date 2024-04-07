@@ -288,6 +288,12 @@ func (vm *CPU8080) move_DA(data []byte) {
 	vm.registers.A = vm.registers.D
 }
 
+// MOV A,E: Move value from register E into accumulator.
+func (vm *CPU8080) move_EA(data []byte) {
+	vm.Logger.Debugf("[7B] LD  \tA,E")
+	vm.registers.A = vm.registers.E
+}
+
 // CPI D8: Compare 8-bit immediate value with accumulator.
 func (vm *CPU8080) cmp(data []byte) {
 	vm.Logger.Debugf("[FE] CP  \t$%02X", data[0])
@@ -303,36 +309,35 @@ func (vm *CPU8080) cmp(data []byte) {
 	vm.pc++
 }
 
+func (vm *CPU8080) push(lower, upper byte) {
+	// Store value in stack, note: stack grows downwards
+	vm.memory[vm.sp-1] = upper
+	vm.memory[vm.sp-2] = lower
+	vm.sp -= 2
+}
+
 // PUSH D: Push register pair D onto stack.
 func (vm *CPU8080) push_DE(data []byte) {
 	vm.Logger.Debugf("[D5] PUSH\tDE")
-	vm.memory[vm.sp-1] = vm.registers.D
-	vm.memory[vm.sp-2] = vm.registers.E
-	vm.sp -= 2
+	vm.push(vm.registers.E, vm.registers.D)
 }
 
 // PUSH H: Push register pair H onto stack.
 func (vm *CPU8080) push_HL(data []byte) {
 	vm.Logger.Debugf("[E5] PUSH\tHL")
-	vm.memory[vm.sp-1] = vm.registers.H
-	vm.memory[vm.sp-2] = vm.registers.L
-	vm.sp -= 2
+	vm.push(vm.registers.L, vm.registers.H)
 }
 
 // PUSH B: Push register pair B onto stack.
 func (vm *CPU8080) push_BC(data []byte) {
 	vm.Logger.Debugf("[C5] PUSH\tBC")
-	vm.memory[vm.sp-1] = vm.registers.B
-	vm.memory[vm.sp-2] = vm.registers.C
-	vm.sp -= 2
+	vm.push(vm.registers.C, vm.registers.B)
 }
 
 // PUSH AF: Push accumulator and flags onto stack.
 func (vm *CPU8080) push_AF(data []byte) {
 	vm.Logger.Debugf("[F5] PUSH\tAF")
-	vm.memory[vm.sp-1] = vm.registers.A
-	vm.memory[vm.sp-2] = vm.flags.toByte()
-	vm.sp -= 2
+	vm.push(vm.flags.toByte(), vm.registers.A)
 }
 
 // DAD H: Add register pair H to register pair H.
@@ -402,6 +407,14 @@ func (vm *CPU8080) pop_DE(data []byte) {
 	vm.sp += 2
 }
 
+// POP AF: Pop accumulator and flags from stack.
+func (vm *CPU8080) pop_AF(data []byte) {
+	vm.Logger.Debugf("[F1] POP \tAF")
+	vm.flags = *fromByte(vm.memory[vm.sp])
+	vm.registers.A = vm.memory[vm.sp+1]
+	vm.sp += 2
+}
+
 // OUT D8: Output accumulator to device at 8-bit immediate address.
 func (vm *CPU8080) out(data []byte) {
 	address := data[0]
@@ -423,4 +436,45 @@ func (vm *CPU8080) rrc(data []byte) {
 	vm.flags.C = vm.registers.A&0x01 == 1
 	// Rotate accumulator right
 	vm.registers.A = (vm.registers.A >> 1) | (vm.registers.A << (8 - 1))
+}
+
+// ANI D8: AND accumulator with 8-bit immediate value.
+func (vm *CPU8080) and(data []byte) {
+	vm.Logger.Debugf("[E6] AND \t$%02X", data[0])
+	result := uint16(vm.registers.A) & uint16(data[0])
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.C = false
+	vm.flags.setP(result)
+
+	vm.registers.A = byte(result)
+}
+
+// ADI D8: ADD accumulator with 8-bit immediate value.
+func (vm *CPU8080) add(data []byte) {
+	vm.Logger.Debugf("[C6] ADD \t$%02X", data[0])
+	result := byte(uint16(vm.registers.A) + uint16(data[0]))
+
+	// Handle condition bits
+	vm.flags.setZ(uint16(result))
+	vm.flags.setS(uint16(result))
+	vm.flags.C = carryAdd(vm.registers.A, data[0])
+	vm.flags.H = auxCarryAdd(vm.registers.A, data[0])
+	vm.flags.setP(uint16(result))
+
+	vm.registers.A = byte(result)
+}
+
+// EI: Enable interrupts.
+func (vm *CPU8080) ei(data []byte) {
+	vm.Logger.Debugf("[FB] EI")
+	vm.InterruptsEnabled = true
+}
+
+// DI: Disable interrupts.
+func (vm *CPU8080) di(data []byte) {
+	vm.Logger.Debugf("[F3] DI")
+	vm.InterruptsEnabled = false
 }
