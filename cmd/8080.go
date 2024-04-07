@@ -41,6 +41,7 @@ var rootCmd = &cobra.Command{
 		ebiten.SetTPS(60)
 
 		vm := emulator.NewCPU8080(&data, emulator.NewSpaceInvadersHardware())
+		vm.StartInterruptRoutines()
 		vm.Logger = logger
 
 		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {

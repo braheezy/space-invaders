@@ -28,19 +28,26 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 	startTime := time.Now()
 
 	for vm.cycleCount < cycleCount {
-		if int(vm.pc) >= vm.programSize {
-			break
-		}
-		currentCode := vm.memory[vm.pc : vm.pc+3]
+		select {
+		case opcode := <-vm.interruptRequest:
+			vm.handleInterrupt(opcode)
+		default:
 
-		op := currentCode[0]
-		vm.pc++
-		vm.cycleCount += stateCounts[op]
+			if int(vm.pc) >= vm.programSize {
+				break
+			}
+			currentCode := vm.memory[vm.pc : vm.pc+3]
 
-		if opcodeFunc, exists := vm.opcodeTable[op]; exists {
-			opcodeFunc(currentCode[1:])
-		} else {
-			vm.Logger.Fatal("unsupported", "opcode", fmt.Sprintf("%02X", op), "cycleCount", vm.cycleCount)
+			op := currentCode[0]
+			vm.pc++
+			vm.cycleCount += stateCounts[op]
+			vm.totalCycles += stateCounts[op]
+
+			if opcodeFunc, exists := vm.opcodeTable[op]; exists {
+				opcodeFunc(currentCode[1:])
+			} else {
+				vm.Logger.Fatal("unsupported", "opcode", fmt.Sprintf("%02X", op), "totalCycles", vm.totalCycles)
+			}
 		}
 	}
 
@@ -50,17 +57,30 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 	}
 
 }
+func (vm *CPU8080) handleInterrupt(opcode byte) {
+	vm.mu.Lock()
+	defer vm.mu.Unlock()
 
+	// Check if interrupts are enabled. If not, simply return.
+	if !vm.InterruptsEnabled {
+		return
+	}
+
+	// Disable further interrupts to prevent re-entry
+	vm.InterruptsEnabled = false
+
+	// Calculate the address from the opcode (RST n: n*8)
+	address := uint16((opcode - 0xC7) / 8 * 8)
+	vm.Logger.Debugf("INTERRUPT--->$%04X", address)
+
+	// Push the current PC onto the stack. Assumes a function exists to handle pushing words onto the stack.
+	vm.push(byte(vm.pc&0xFF), byte(vm.pc>>8)&0xFF)
+
+	// Set the PC to the ISR address.
+	vm.pc = address
+}
 func toUint16(code *[]byte) uint16 {
 	return uint16((*code)[1])<<8 | uint16((*code)[0])
-}
-
-func (vm *CPU8080) performMidScreenInterrupt() {
-	// Implement mid-screen interrupt tasks here
-}
-
-func (vm *CPU8080) performFullScreenInterrupt() {
-	// Implement full-screen interrupt tasks here
 }
 
 // NOP: No operation.
@@ -385,10 +405,10 @@ func (vm *CPU8080) pop_DE(data []byte) {
 // OUT D8: Output accumulator to device at 8-bit immediate address.
 func (vm *CPU8080) out(data []byte) {
 	address := data[0]
-	deviceName := vm.IO.DeviceName(address)
+	deviceName := vm.Hardware.DeviceName(address)
 	vm.Logger.Debugf("[D3] OUT \t(%s),A", deviceName)
 	vm.pc++
-	vm.IO.Out(address, vm.registers.A)
+	vm.Hardware.Out(address, vm.registers.A)
 }
 
 // RRC: Rotate accumulator right.
