@@ -156,6 +156,8 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
 	vm.programSize = len(*program) + int(vm.Options.ProgramStartAddress)
 
+	vm.Hardware.Init(&vm.memory)
+
 	// Define all supported opcodes
 	vm.opcodeTable = map[byte]opcodeExec{
 		0x00: vm.nop,
@@ -228,7 +230,7 @@ func (vm *CPU8080) Update() error {
 }
 
 func (vm *CPU8080) Draw(screen *ebiten.Image) {
-
+	vm.Hardware.Draw(screen)
 }
 func (vm *CPU8080) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth, outsideHeight
