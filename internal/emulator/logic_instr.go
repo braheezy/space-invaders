@@ -31,6 +31,7 @@ func (vm *CPU8080) and(data []byte) {
 	vm.flags.setP(result)
 
 	vm.registers.A = byte(result)
+	vm.pc++
 }
 
 // RRC: Rotate accumulator right.

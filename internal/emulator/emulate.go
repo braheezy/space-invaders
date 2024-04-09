@@ -74,3 +74,12 @@ func (vm *CPU8080) out(data []byte) {
 	vm.pc++
 	vm.Hardware.Out(address, vm.registers.A)
 }
+
+// IN D8: Input accumulator from device at 8-bit immediate address.
+func (vm *CPU8080) in(data []byte) {
+	address := data[0]
+	deviceName := vm.Hardware.DeviceName(address)
+	vm.Logger.Debugf("[D8] IN  \tA,(%s)", deviceName)
+	vm.pc++
+	vm.registers.A = vm.Hardware.In(address)
+}

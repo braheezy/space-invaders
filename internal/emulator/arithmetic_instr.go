@@ -47,6 +47,22 @@ func (vm *CPU8080) dec_B(data []byte) {
 	vm.registers.B--
 }
 
+// DCR M: Decrement memory location pointed to by register pair HL.
+func (vm *CPU8080) dec_HL(data []byte) {
+	vm.Logger.Debugf("[35] DEC \t(HL)")
+	memoryAddress := toUint16(&[]byte{vm.registers.H, vm.registers.L})
+	value := vm.memory[memoryAddress]
+	result := uint16(value) - 1
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.H = auxCarrySub(value, 1)
+	vm.flags.setP(result)
+
+	vm.memory[memoryAddress] = value - 1
+}
+
 // DCR C: Decrement register C.
 func (vm *CPU8080) dec_C(data []byte) {
 	vm.Logger.Debugf("[0D] DEC \tC")

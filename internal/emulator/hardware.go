@@ -25,7 +25,16 @@ type SpaceInvadersHardware struct {
 }
 
 func (si *SpaceInvadersHardware) In(addr byte) byte {
-	return 0
+	switch addr {
+	case 0x02:
+		var result byte
+		if ebiten.IsKeyPressed(ebiten.KeyT) {
+			result |= 0x04
+		}
+		return result
+	default:
+		return 0xFF // Return 0xFF if the address is unknown
+	}
 }
 
 func (si *SpaceInvadersHardware) Out(addr byte, value byte) {
@@ -36,6 +45,8 @@ func (si *SpaceInvadersHardware) Out(addr byte, value byte) {
 
 func (si *SpaceInvadersHardware) DeviceName(port byte) string {
 	switch port {
+	case 0x02:
+		return "INPUT2"
 	case 0x06:
 		return "WATCHDOG"
 	default:
