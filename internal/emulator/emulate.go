@@ -72,7 +72,10 @@ func (vm *CPU8080) out(data []byte) {
 	deviceName := vm.Hardware.DeviceName(address)
 	vm.Logger.Debugf("[D3] OUT \t(%s),A", deviceName)
 	vm.pc++
-	vm.Hardware.Out(address, vm.registers.A)
+	err := vm.Hardware.Out(address, vm.registers.A)
+	if err != nil {
+		vm.Logger.Fatal("OUT", "error", err)
+	}
 }
 
 // IN D8: Input accumulator from device at 8-bit immediate address.
@@ -81,5 +84,9 @@ func (vm *CPU8080) in(data []byte) {
 	deviceName := vm.Hardware.DeviceName(address)
 	vm.Logger.Debugf("[D8] IN  \tA,(%s)", deviceName)
 	vm.pc++
-	vm.registers.A = vm.Hardware.In(address)
+	result, err := vm.Hardware.In(address)
+	if err != nil {
+		vm.Logger.Fatal("IN", "error", err)
+	}
+	vm.registers.A = result
 }

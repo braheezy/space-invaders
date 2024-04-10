@@ -8,8 +8,8 @@ import (
 )
 
 type HardwareIO interface {
-	In(addr byte) byte
-	Out(addr byte, data byte)
+	In(addr byte) (byte, error)
+	Out(addr byte, data byte) error
 	DeviceName(port byte) string
 	InterruptConditions() []InterruptCondition
 	CyclesPerFrame() int
@@ -24,23 +24,27 @@ type SpaceInvadersHardware struct {
 	videoRAM       []byte
 }
 
-func (si *SpaceInvadersHardware) In(addr byte) byte {
+func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 	switch addr {
 	case 0x02:
 		var result byte
 		if ebiten.IsKeyPressed(ebiten.KeyT) {
 			result |= 0x04
 		}
-		return result
+		return result, nil
 	default:
-		return 0xFF // Return 0xFF if the address is unknown
+		return 0, fmt.Errorf("unsupported hardware port: %02X", addr)
 	}
 }
 
-func (si *SpaceInvadersHardware) Out(addr byte, value byte) {
-	if addr == 0x03 {
+func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
+	switch addr {
+	case 0x03:
 		si.watchdogTimer = value
+	default:
+		return fmt.Errorf("unsupported hardware port: %02X", addr)
 	}
+	return nil
 }
 
 func (si *SpaceInvadersHardware) DeviceName(port byte) string {

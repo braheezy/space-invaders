@@ -23,7 +23,7 @@ func (vm *CPU8080) jump_NZ(data []byte) {
 		vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", operand)
 		vm.pc = operand
 	} else {
-		vm.Logger.Debugf("[CA] JP  \tZ,$%04X", vm.pc+2)
+		vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", vm.pc+2)
 		vm.pc += 2
 	}
 }
@@ -35,6 +35,31 @@ func (vm *CPU8080) jump_Z(data []byte) {
 		vm.Logger.Debugf("[CA] JP  \tZ,$%04X", operand)
 		vm.pc = operand
 	} else {
+		vm.Logger.Debugf("[CA] JP  \tZ,$%04X", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
+// JNC addr: Jump if not carry.
+func (vm *CPU8080) jump_NC(data []byte) {
+	operand := toUint16(data)
+	if !vm.flags.C {
+		vm.Logger.Debugf("[D2] JP  \tNC, $%04X", operand)
+		vm.pc = operand
+	} else {
+		vm.Logger.Debugf("[D2] JP  \tNC,$%04X", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
+// JC addr: Jump if carry.
+func (vm *CPU8080) jump_C(data []byte) {
+	operand := toUint16(data)
+	if vm.flags.C {
+		vm.Logger.Debugf("[DA] JP  \tC, $%04X", operand)
+		vm.pc = operand
+	} else {
+		vm.Logger.Debugf("[DA] JP  \tC,$%04X", vm.pc+2)
 		vm.pc += 2
 	}
 }
