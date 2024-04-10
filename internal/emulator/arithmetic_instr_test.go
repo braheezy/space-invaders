@@ -84,3 +84,53 @@ func TestADD(t *testing.T) {
 		})
 	}
 }
+
+func TestIncHL(t *testing.T) {
+	tests := []struct {
+		name          string
+		initialH      byte
+		initialL      byte
+		expectedH     byte
+		expectedL     byte
+		carryFlagSet  bool
+		expectedCarry bool
+	}{
+		{
+			name:          "Normal increment",
+			initialH:      0x0F,
+			initialL:      0xFE,
+			expectedH:     0x0F,
+			expectedL:     0xFF,
+			carryFlagSet:  false,
+			expectedCarry: false,
+		},
+		{
+			name:          "Boundary increment with carry unchanged",
+			initialH:      0xFF,
+			initialL:      0xFF,
+			expectedH:     0x00,
+			expectedL:     0x00,
+			carryFlagSet:  true,
+			expectedCarry: true,
+		},
+		// Add more test cases as needed
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := NewCPU8080(&[]byte{}, nil) // Initialize your CPU8080 instance
+			vm.registers.H = tt.initialH
+			vm.registers.L = tt.initialL
+			vm.flags.C = tt.carryFlagSet
+
+			vm.inc_HL([]byte{0x01, 0x02}) // Execute the INC HL operation
+
+			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
+				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			}
+			if vm.flags.C != tt.expectedCarry {
+				t.Errorf("Expected Carry flag=%t; got %t", tt.expectedCarry, vm.flags.C)
+			}
+		})
+	}
+}

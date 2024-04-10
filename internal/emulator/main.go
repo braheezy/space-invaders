@@ -156,7 +156,9 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
 	vm.programSize = len(*program) + int(vm.Options.ProgramStartAddress)
 
-	vm.Hardware.Init(&vm.memory)
+	if vm.Hardware != nil {
+		vm.Hardware.Init(&vm.memory)
+	}
 
 	// Define all supported opcodes
 	vm.opcodeTable = map[byte]opcodeExec{
@@ -198,6 +200,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0xC3: vm.jump,
 		0xC5: vm.push_BC,
 		0xC6: vm.add,
+		0xC8: vm.ret_Z,
 		0xC9: vm.ret,
 		0xCA: vm.jump_Z,
 		0xCD: vm.call,

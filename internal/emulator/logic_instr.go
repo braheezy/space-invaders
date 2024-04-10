@@ -78,6 +78,6 @@ func (vm *CPU8080) ana(data byte) {
 
 // ANA A: AND accumulator with accumulator.
 func (vm *CPU8080) ana_A(data []byte) {
-	vm.Logger.Debugf("[E6] AND \tA")
+	vm.Logger.Debugf("[A7] AND \tA")
 	vm.ana(vm.registers.A)
 }

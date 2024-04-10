@@ -57,8 +57,8 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 	}
 }
 
-func toUint16(code *[]byte) uint16 {
-	return uint16((*code)[1])<<8 | uint16((*code)[0])
+func toUint16(code []byte) uint16 {
+	return uint16(code[1])<<8 | uint16(code[0])
 }
 
 // NOP: No operation.
