@@ -1,10 +1,12 @@
-module github.com/braheezy/8080
+module github.com/braheezy/space-invaders
 
 go 1.21.8
 
 require (
+	github.com/braheezy/goqoa v1.1.0
 	github.com/charmbracelet/log v0.3.1
 	github.com/hajimehoshi/ebiten/v2 v2.6.6
+	github.com/hajimehoshi/oto v1.0.1
 	github.com/spf13/cobra v1.8.0
 )
 

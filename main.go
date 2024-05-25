@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/braheezy/8080/cmd"
+	"github.com/braheezy/space-invaders/cmd"
 )
 
 func main() {

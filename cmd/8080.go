@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/braheezy/8080/internal/emulator"
+	"github.com/braheezy/space-invaders/internal/emulator"
 	"github.com/charmbracelet/log"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/spf13/cobra"
