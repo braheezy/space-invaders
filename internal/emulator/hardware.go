@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"image/color"
 
+	"github.com/braheezy/goqoa/pkg/qoa"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/oto"
 )
 
 type HardwareIO interface {
@@ -22,24 +24,36 @@ type SpaceInvadersHardware struct {
 	cyclesPerFrame int
 	DisplayScale   int
 	videoRAM       []byte
+	CoinDeposited  bool
+	audioChannels  map[byte]*oto.Player
+	qoaFiles       map[byte]*qoa.Reader
 }
 
 func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
+	var result byte
+
 	switch addr {
+	case 0x01:
+		if si.CoinDeposited {
+			result |= 0x01
+		}
 	case 0x02:
 		var result byte
 		if ebiten.IsKeyPressed(ebiten.KeyT) {
 			result |= 0x04
 		}
-		return result, nil
 	default:
 		return 0, fmt.Errorf("unsupported hardware port: %02X", addr)
 	}
+
+	return result, nil
 }
 
 func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
 	switch addr {
 	case 0x03:
+		// TODO: SOUND1
+	case 0x06:
 		si.watchdogTimer = value
 	default:
 		return fmt.Errorf("unsupported hardware port: %02X", addr)
@@ -49,8 +63,12 @@ func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
 
 func (si *SpaceInvadersHardware) DeviceName(port byte) string {
 	switch port {
+	case 0x01:
+		return "INPUT1"
 	case 0x02:
 		return "INPUT2"
+	case 0x03:
+		return "SOUND1"
 	case 0x06:
 		return "WATCHDOG"
 	default:
@@ -92,6 +110,7 @@ func NewSpaceInvadersHardware() *SpaceInvadersHardware {
 
 func (si *SpaceInvadersHardware) Init(memory *[65536]byte) {
 	si.videoRAM = (*memory)[0x2400 : 0x3FFF+1]
+	oto.NewContext(44100, 2, 16)
 }
 
 func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
