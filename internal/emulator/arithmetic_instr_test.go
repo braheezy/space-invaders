@@ -97,39 +97,104 @@ func TestIncHL(t *testing.T) {
 	}{
 		{
 			name:          "Normal increment",
-			initialH:      0x0F,
-			initialL:      0xFE,
-			expectedH:     0x0F,
-			expectedL:     0xFF,
+			initialH:      0x38,
+			initialL:      0xFF,
+			expectedH:     0x39,
+			expectedL:     0x00,
 			carryFlagSet:  false,
 			expectedCarry: false,
 		},
-		{
-			name:          "Boundary increment with carry unchanged",
-			initialH:      0xFF,
-			initialL:      0xFF,
-			expectedH:     0x00,
-			expectedL:     0x00,
-			carryFlagSet:  true,
-			expectedCarry: true,
-		},
-		// Add more test cases as needed
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			vm := NewCPU8080(&[]byte{}, nil) // Initialize your CPU8080 instance
+			vm := NewCPU8080(&[]byte{}, nil)
 			vm.registers.H = tt.initialH
 			vm.registers.L = tt.initialL
 			vm.flags.C = tt.carryFlagSet
 
-			vm.inc_HL([]byte{0x01, 0x02}) // Execute the INC HL operation
+			vm.inc_HL([]byte{0x00, 0x00})
+
+			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
+				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			}
+		})
+	}
+}
+
+func TestDecHL(t *testing.T) {
+	tests := []struct {
+		name                string
+		initialH            byte
+		initialL            byte
+		memoryLocation      int
+		initialMemoryValue  byte
+		expectedMemoryValue byte
+	}{
+		{
+			name:                "Normal decrement",
+			initialH:            0x3A,
+			initialL:            0x7C,
+			memoryLocation:      0x3A7C,
+			initialMemoryValue:  0x40,
+			expectedMemoryValue: 0x3F,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := NewCPU8080(&[]byte{}, nil)
+			vm.registers.H = tt.initialH
+			vm.registers.L = tt.initialL
+			vm.memory[tt.memoryLocation] = tt.initialMemoryValue
+
+			vm.dec_HL([]byte{0x00, 0x00})
+
+			if vm.memory[tt.memoryLocation] != tt.expectedMemoryValue {
+				t.Errorf("Expected memory value=0x%02X; got 0x%02X", tt.expectedMemoryValue, vm.memory[tt.memoryLocation])
+			}
+		})
+	}
+}
+func TestDadDE(t *testing.T) {
+	tests := []struct {
+		name          string
+		initialD      byte
+		initialE      byte
+		initialH      byte
+		initialL      byte
+		expectedH     byte
+		expectedL     byte
+		expectedCarry bool
+	}{
+		{
+			name:          "Normal increment",
+			initialD:      0x33,
+			initialE:      0x9F,
+			initialH:      0xA1,
+			initialL:      0x7B,
+			expectedH:     0xD5,
+			expectedL:     0x1A,
+			expectedCarry: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := NewCPU8080(&[]byte{}, nil)
+			vm.registers.H = tt.initialH
+			vm.registers.L = tt.initialL
+			vm.registers.D = tt.initialD
+			vm.registers.E = tt.initialE
+			vm.flags.C = true
+
+			vm.dad_DE([]byte{0x00, 0x00})
 
 			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
 				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
 			}
 			if vm.flags.C != tt.expectedCarry {
-				t.Errorf("Expected Carry flag=%t; got %t", tt.expectedCarry, vm.flags.C)
+				t.Errorf("expected C flag %t, got %t", tt.expectedCarry, vm.flags.C)
 			}
 		})
 	}

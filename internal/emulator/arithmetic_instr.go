@@ -15,23 +15,23 @@ func (vm *CPU8080) add(data []byte) {
 	vm.registers.A = byte(result)
 }
 
-func (vm *CPU8080) inc(reg1 byte, reg2 byte) (byte, byte) {
-	combined := toUint16([]byte{reg1, reg2})
+func inc(reg1 byte, reg2 byte) (byte, byte) {
+	combined := toUint16(reg1, reg2)
 	combined++
 
-	return byte(combined & 0xFF), byte(combined >> 8)
+	return byte(combined >> 8), byte(combined & 0xFF)
 }
 
 // INC H: Increment register pair H.
 func (vm *CPU8080) inc_HL(data []byte) {
 	vm.Logger.Debugf("[23] INC \tHL")
-	vm.registers.L, vm.registers.H = vm.inc(vm.registers.L, vm.registers.H)
+	vm.registers.H, vm.registers.L = inc(vm.registers.H, vm.registers.L)
 }
 
 // INC D: Increment register pair D.
 func (vm *CPU8080) inc_DE(data []byte) {
 	vm.Logger.Debugf("[13] INC \tDE")
-	vm.registers.E, vm.registers.D = vm.inc(vm.registers.E, vm.registers.D)
+	vm.registers.D, vm.registers.E = inc(vm.registers.D, vm.registers.E)
 }
 
 // DCR B: Decrement register B.
@@ -51,7 +51,7 @@ func (vm *CPU8080) dec_B(data []byte) {
 // DCR M: Decrement memory location pointed to by register pair HL.
 func (vm *CPU8080) dec_HL(data []byte) {
 	vm.Logger.Debugf("[35] DEC \t(HL)")
-	memoryAddress := toUint16([]byte{vm.registers.L, vm.registers.H})
+	memoryAddress := toUint16(vm.registers.H, vm.registers.L)
 	value := vm.memory[memoryAddress]
 	result := uint16(value) - 1
 
@@ -81,7 +81,7 @@ func (vm *CPU8080) dec_C(data []byte) {
 // DAD H: Add register pair H to register pair H.
 func (vm *CPU8080) dad_HL(data []byte) {
 	vm.Logger.Debugf("[29] ADD \tHL,HL")
-	hl := toUint16([]byte{vm.registers.L, vm.registers.H})
+	hl := toUint16(vm.registers.H, vm.registers.L)
 	doubledHL := uint32(hl) << 1
 
 	vm.flags.C = doubledHL > 0xFFFF
@@ -93,25 +93,29 @@ func (vm *CPU8080) dad_HL(data []byte) {
 // DAD D: Add register pair D to register pair H.
 func (vm *CPU8080) dad_DE(data []byte) {
 	vm.Logger.Debugf("[19] ADD \tHL,DE")
-	de := toUint16([]byte{vm.registers.E, vm.registers.D})
-	doubledDE := uint32(de) << 1
+	de := uint32(toUint16(vm.registers.D, vm.registers.E))
+	hl := uint32(toUint16(vm.registers.H, vm.registers.L))
 
-	vm.flags.C = doubledDE > 0xFFFF
+	result := hl + de
 
-	vm.registers.H = byte(doubledDE >> 8)
-	vm.registers.L = byte(doubledDE)
+	vm.flags.C = result > 0xFFFF
+
+	vm.registers.H = byte(result >> 8)
+	vm.registers.L = byte(result)
 }
 
 // DAD B: Add register pair B to register pair H.
 func (vm *CPU8080) dad_BC(data []byte) {
 	vm.Logger.Debugf("[09] ADD \tHL,BC")
-	bc := toUint16([]byte{vm.registers.C, vm.registers.B})
-	doubledBC := uint32(bc) << 1
+	bc := uint32(toUint16(vm.registers.B, vm.registers.C))
+	hl := uint32(toUint16(vm.registers.H, vm.registers.L))
 
-	vm.flags.C = doubledBC > 0xFFFF
+	result := hl + bc
 
-	vm.registers.H = byte(doubledBC >> 8)
-	vm.registers.L = byte(doubledBC)
+	vm.flags.C = result > 0xFFFF
+
+	vm.registers.H = byte(result >> 8)
+	vm.registers.L = byte(result)
 }
 
 // XCHG: Exchange register pairs D and H.
