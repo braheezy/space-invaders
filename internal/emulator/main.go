@@ -40,7 +40,7 @@ type CPU8080 struct {
 
 type CPU8080Options struct {
 	ProgramStartAddress uint16
-	stepWait            bool
+	UnlimitedTPS        bool
 }
 
 type registers struct {
@@ -153,7 +153,6 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		interruptRequest:  make(chan byte, 1),
 		InterruptsEnabled: true,
 	}
-	vm.Options.stepWait = true
 	// Put the program into memory at the location it wants to be
 	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
 	vm.programSize = len(*program) + int(vm.Options.ProgramStartAddress)
@@ -166,6 +165,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	vm.opcodeTable = map[byte]opcodeExec{
 		0x00: vm.nop,
 		0x01: vm.load_BC,
+		0x03: vm.inx_B,
 		0x05: vm.dcr_B,
 		0x06: vm.moveImm_B,
 		0x09: vm.dad_B,
@@ -181,24 +181,36 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0x23: vm.inx_H,
 		0x26: vm.moveImm_H,
 		0x29: vm.dad_H,
+		0x2E: vm.moveImm_L,
 		0x31: vm.load_SP,
 		0x32: vm.store_A,
 		0x35: vm.dcr_M,
 		0x36: vm.moveImm_M,
+		0x37: vm.set_C,
 		0x3A: vm.load_A,
 		0x3D: vm.dcr_A,
 		0x3E: vm.moveImm_A,
+		0x46: vm.move_BM,
+		0x4F: vm.move_CA,
 		0x56: vm.move_DM,
+		0x57: vm.move_DA,
 		0x5E: vm.move_EM,
+		0x5F: vm.move_EA,
 		0x66: vm.move_HM,
+		0x67: vm.move_HA,
 		0x6F: vm.move_LA,
 		0x77: vm.move_MA,
+		0x79: vm.move_AC,
 		0x7A: vm.move_AD,
 		0x7B: vm.move_AE,
 		0x7C: vm.move_AH,
+		0x7D: vm.move_AL,
 		0x7E: vm.move_AM,
 		0xA7: vm.ana_A,
 		0xAF: vm.xra_A,
+		0xB0: vm.ora_B,
+		0xB6: vm.ora_M,
+		0xC0: vm.ret_NZ,
 		0xC2: vm.jump_NZ,
 		0xC1: vm.pop_BC,
 		0xC3: vm.jump,
@@ -208,10 +220,12 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0xC9: vm.ret,
 		0xCA: vm.jump_Z,
 		0xCD: vm.call,
+		0xD0: vm.ret_NC,
 		0xD1: vm.pop_DE,
 		0xD2: vm.jump_NC,
 		0xD3: vm.out,
 		0xD5: vm.push_DE,
+		0xD8: vm.ret_C,
 		0xDA: vm.jump_C,
 		0xDB: vm.in,
 		0xE1: vm.pop_HL,
@@ -233,16 +247,8 @@ func (vm *CPU8080) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return ebiten.Termination
 	}
-	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		vm.Options.stepWait = !vm.Options.stepWait
-	}
 
 	vm.cycleCount = 0
-	// if vm.Options.stepWait {
-	// 	vm.runCycles(17)
-
-	// 	vm.Options.stepWait = false
-	// }
 	vm.runCycles(vm.Hardware.CyclesPerFrame())
 
 	return nil

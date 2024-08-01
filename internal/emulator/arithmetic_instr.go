@@ -35,6 +35,12 @@ func (vm *CPU8080) inx_D(data []byte) {
 	vm.registers.D, vm.registers.E = inc(vm.registers.D, vm.registers.E)
 }
 
+// INX B: Increment register pair B.
+func (vm *CPU8080) inx_B(data []byte) {
+	vm.Logger.Debugf("[03] INC \tBC")
+	vm.registers.B, vm.registers.C = inc(vm.registers.B, vm.registers.C)
+}
+
 // decrement helper
 func (vm *CPU8080) dcr(data byte) byte {
 	result := uint16(data) - 1

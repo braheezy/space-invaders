@@ -86,3 +86,33 @@ func (vm *CPU8080) ret_Z(data []byte) {
 		vm.Logger.Debugf("[C8] RET \tZ (not taken)")
 	}
 }
+
+// RNZ: Return from subroutine if Z flag is not set.
+func (vm *CPU8080) ret_NZ(data []byte) {
+	if !vm.flags.Z {
+		vm._ret()
+		vm.Logger.Debugf("[C0] RET \tNZ($%04X)", vm.pc)
+	} else {
+		vm.Logger.Debugf("[C0] RET \tNZ (not taken)")
+	}
+}
+
+// RC: Return from subroutine if C flag is set.
+func (vm *CPU8080) ret_C(data []byte) {
+	if vm.flags.C {
+		vm._ret()
+		vm.Logger.Debugf("[D8] RET \tC($%04X)", vm.pc)
+	} else {
+		vm.Logger.Debugf("[D8] RET \tC (not taken)")
+	}
+}
+
+// RNC: Return from subroutine if C flag is not set.
+func (vm *CPU8080) ret_NC(data []byte) {
+	if !vm.flags.C {
+		vm._ret()
+		vm.Logger.Debugf("[D0] RET \tNC($%04X)", vm.pc)
+	} else {
+		vm.Logger.Debugf("[D0] RET \tNC (not taken)")
+	}
+}

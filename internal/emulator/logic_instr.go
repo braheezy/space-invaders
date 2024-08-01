@@ -19,6 +19,32 @@ func (vm *CPU8080) xra_A(data []byte) {
 	vm.xra(vm.registers.A)
 }
 
+// ora performs OR with accumulator
+func (vm *CPU8080) ora(reg byte) {
+	result := uint16(vm.registers.A) | uint16(reg)
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.C = false
+	vm.flags.setP(result)
+
+	vm.registers.A = byte(result)
+}
+
+// ORA M: OR A with memory location pointed to by register pair HL
+func (vm *CPU8080) ora_M(data []byte) {
+	vm.Logger.Debugf("[B6] OR  \t(HL)")
+	address := toUint16(vm.registers.H, vm.registers.L)
+	vm.ora(vm.memory[address])
+}
+
+// ORA C: OR A with register B
+func (vm *CPU8080) ora_B(data []byte) {
+	vm.Logger.Debugf("[B0] OR  \tB")
+	vm.ora(vm.registers.B)
+}
+
 // ANI D8: AND accumulator with 8-bit immediate value.
 func (vm *CPU8080) and(data []byte) {
 	vm.Logger.Debugf("[E6] AND \t$%02X", data[0])

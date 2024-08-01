@@ -219,3 +219,88 @@ func TestANA(t *testing.T) {
 		})
 	}
 }
+
+func TestORA(t *testing.T) {
+	// Initialize a CPU8080 instance with a dummy program and hardware IO
+	vm := NewCPU8080(&[]byte{}, nil)
+
+	tests := []struct {
+		name      string
+		initialA  byte // Initial accumulator value
+		data      byte // Immediate value to OR with
+		expectedA byte // Expected accumulator value after OR
+		expectedZ bool // Expected Zero flag
+		expectedS bool // Expected Sign flag
+		expectedC bool // Expected Carry flag (always false)
+		expectedP bool // Expected Parity flag
+	}{
+		{
+			name:      "ORA resulting in zero",
+			initialA:  0x00,
+			data:      0x00,
+			expectedA: 0x00, // 0x00 OR 0x00 = 0x00
+			expectedZ: true,
+			expectedS: false,
+			expectedC: false,
+			expectedP: true, // Parity of 0x00 is even
+		},
+		{
+			name:      "ORA resulting in non-zero",
+			initialA:  0xF0,
+			data:      0x0F,
+			expectedA: 0xFF, // 0xF0 OR 0x0F = 0xFF
+			expectedZ: false,
+			expectedS: true, // Sign bit is 1
+			expectedC: false,
+			expectedP: true, // Parity of 0xFF (11111111) is even
+		},
+		{
+			name:      "ORA with itself",
+			initialA:  0x55, // 01010101
+			data:      0x55,
+			expectedA: 0x55,
+			expectedZ: false,
+			expectedS: false,
+			expectedC: false,
+			expectedP: true, // Parity is even (4 ones)
+		},
+		{
+			name:      "ORA C example from docs",
+			initialA:  0x33,
+			data:      0x0F,
+			expectedA: 0x3F,
+			expectedZ: false,
+			expectedS: false,
+			expectedC: false,
+			expectedP: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset flags and set the initial accumulator value
+			vm.flags = flags{}
+			vm.registers.A = tt.initialA
+
+			// Execute the ora function with the test data
+			vm.ora(tt.data)
+
+			// Check the accumulator's value and flags
+			if vm.registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.registers.A)
+			}
+			if vm.flags.Z != tt.expectedZ {
+				t.Errorf("%s: expected Z flag %t, got %t", tt.name, tt.expectedZ, vm.flags.Z)
+			}
+			if vm.flags.S != tt.expectedS {
+				t.Errorf("%s: expected S flag %t, got %t", tt.name, tt.expectedS, vm.flags.S)
+			}
+			if vm.flags.C != tt.expectedC {
+				t.Errorf("%s: expected C flag %t, got %t", tt.name, tt.expectedC, vm.flags.C)
+			}
+			if vm.flags.P != tt.expectedP {
+				t.Errorf("%s: expected P flag %t, got %t", tt.name, tt.expectedP, vm.flags.P)
+			}
+		})
+	}
+}
