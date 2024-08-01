@@ -90,7 +90,7 @@ func TestDAD_DE(t *testing.T) {
 			vm.registers.E = tt.initialE
 
 			// Execute the dad_DE function
-			vm.dad_DE(nil) // The data slice is not used in the function
+			vm.dad_D(nil) // The data slice is not used in the function
 
 			// Check if the H and L registers have the expected values
 			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {

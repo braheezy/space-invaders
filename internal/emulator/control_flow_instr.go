@@ -1,12 +1,5 @@
 package emulator
 
-// JMP: Jump to address.
-func (vm *CPU8080) jump(data []byte) {
-	operand := toUint16(data[1], data[0])
-	vm.Logger.Debugf("[C3] JMP \t$%04X", operand)
-	vm.pc = operand
-}
-
 // CALL addr: Call subroutine at address
 func (vm *CPU8080) call(data []byte) {
 	jumpAddress := toUint16(data[1], data[0])
@@ -14,6 +7,13 @@ func (vm *CPU8080) call(data []byte) {
 	vm.Logger.Debugf("[CD] CALL\t$%04X", jumpAddress)
 	vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
 	vm.pc = jumpAddress
+}
+
+// JMP: Jump to address.
+func (vm *CPU8080) jump(data []byte) {
+	operand := toUint16(data[1], data[0])
+	vm.Logger.Debugf("[C3] JMP \t$%04X", operand)
+	vm.pc = operand
 }
 
 // JNZ addr: Jump if not zero.
@@ -64,6 +64,7 @@ func (vm *CPU8080) jump_C(data []byte) {
 	}
 }
 
+// return helper
 func (vm *CPU8080) _ret() {
 	address := toUint16(vm.memory[vm.sp+1], vm.memory[vm.sp])
 	vm.pc = address

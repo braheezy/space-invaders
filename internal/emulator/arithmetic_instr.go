@@ -1,7 +1,7 @@
 package emulator
 
 // ADI D8: ADD accumulator with 8-bit immediate value.
-func (vm *CPU8080) add(data []byte) {
+func (vm *CPU8080) adi(data []byte) {
 	vm.Logger.Debugf("[C6] ADD \t$%02X", data[0])
 	result := byte(uint16(vm.registers.A) + uint16(data[0]))
 
@@ -15,6 +15,7 @@ func (vm *CPU8080) add(data []byte) {
 	vm.registers.A = byte(result)
 }
 
+// increment helper
 func inc(reg1 byte, reg2 byte) (byte, byte) {
 	combined := toUint16(reg1, reg2)
 	combined++
@@ -22,19 +23,20 @@ func inc(reg1 byte, reg2 byte) (byte, byte) {
 	return byte(combined >> 8), byte(combined & 0xFF)
 }
 
-// INC H: Increment register pair H.
-func (vm *CPU8080) inc_HL(data []byte) {
+// INX H: Increment register pair H.
+func (vm *CPU8080) inx_H(data []byte) {
 	vm.Logger.Debugf("[23] INC \tHL")
 	vm.registers.H, vm.registers.L = inc(vm.registers.H, vm.registers.L)
 }
 
-// INC D: Increment register pair D.
-func (vm *CPU8080) inc_DE(data []byte) {
+// INX D: Increment register pair D.
+func (vm *CPU8080) inx_D(data []byte) {
 	vm.Logger.Debugf("[13] INC \tDE")
 	vm.registers.D, vm.registers.E = inc(vm.registers.D, vm.registers.E)
 }
 
-func (vm *CPU8080) dec(data byte) byte {
+// decrement helper
+func (vm *CPU8080) dcr(data byte) byte {
 	result := uint16(data) - 1
 
 	// Handle condition bits
@@ -47,32 +49,32 @@ func (vm *CPU8080) dec(data byte) byte {
 }
 
 // DCR B: Decrement register B.
-func (vm *CPU8080) dec_B(data []byte) {
+func (vm *CPU8080) dcr_B(data []byte) {
 	vm.Logger.Debugf("[05] DEC \tB")
-	vm.registers.B = vm.dec(vm.registers.B)
+	vm.registers.B = vm.dcr(vm.registers.B)
 }
 
 // DCR A: Decrement register A.
-func (vm *CPU8080) dec_A(data []byte) {
+func (vm *CPU8080) dcr_A(data []byte) {
 	vm.Logger.Debugf("[3D] DEC \tA")
-	vm.registers.A = vm.dec(vm.registers.A)
+	vm.registers.A = vm.dcr(vm.registers.A)
 }
 
 // DCR M: Decrement memory location pointed to by register pair HL.
-func (vm *CPU8080) dec_HL(data []byte) {
+func (vm *CPU8080) dcr_M(data []byte) {
 	vm.Logger.Debugf("[35] DEC \t(HL)")
 	memoryAddress := toUint16(vm.registers.H, vm.registers.L)
-	vm.memory[memoryAddress] = vm.dec(vm.memory[memoryAddress])
+	vm.memory[memoryAddress] = vm.dcr(vm.memory[memoryAddress])
 }
 
 // DCR C: Decrement register C.
-func (vm *CPU8080) dec_C(data []byte) {
+func (vm *CPU8080) dcr_C(data []byte) {
 	vm.Logger.Debugf("[0D] DEC \tC")
-	vm.registers.C = vm.dec(vm.registers.C)
+	vm.registers.C = vm.dcr(vm.registers.C)
 }
 
 // DAD H: Add register pair H to register pair H.
-func (vm *CPU8080) dad_HL(data []byte) {
+func (vm *CPU8080) dad_H(data []byte) {
 	vm.Logger.Debugf("[29] ADD \tHL,HL")
 	hl := toUint16(vm.registers.H, vm.registers.L)
 	doubledHL := uint32(hl) << 1
@@ -84,7 +86,7 @@ func (vm *CPU8080) dad_HL(data []byte) {
 }
 
 // DAD D: Add register pair D to register pair H.
-func (vm *CPU8080) dad_DE(data []byte) {
+func (vm *CPU8080) dad_D(data []byte) {
 	vm.Logger.Debugf("[19] ADD \tHL,DE")
 	de := uint32(toUint16(vm.registers.D, vm.registers.E))
 	hl := uint32(toUint16(vm.registers.H, vm.registers.L))
@@ -98,7 +100,7 @@ func (vm *CPU8080) dad_DE(data []byte) {
 }
 
 // DAD B: Add register pair B to register pair H.
-func (vm *CPU8080) dad_BC(data []byte) {
+func (vm *CPU8080) dad_B(data []byte) {
 	vm.Logger.Debugf("[09] ADD \tHL,BC")
 	bc := uint32(toUint16(vm.registers.B, vm.registers.C))
 	hl := uint32(toUint16(vm.registers.H, vm.registers.L))

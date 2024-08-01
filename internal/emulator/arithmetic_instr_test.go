@@ -60,7 +60,7 @@ func TestADD(t *testing.T) {
 			vm.registers.A = tt.initialA
 
 			// Execute the add function with the test data
-			vm.add([]byte{tt.data})
+			vm.adi([]byte{tt.data})
 
 			// Check the accumulator's value and flags
 			if vm.registers.A != tt.expectedA {
@@ -113,7 +113,7 @@ func TestIncHL(t *testing.T) {
 			vm.registers.L = tt.initialL
 			vm.flags.C = tt.carryFlagSet
 
-			vm.inc_HL([]byte{0x00, 0x00})
+			vm.inx_H([]byte{0x00, 0x00})
 
 			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
 				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
@@ -148,7 +148,7 @@ func TestDecHL(t *testing.T) {
 			vm.registers.L = tt.initialL
 			vm.memory[tt.memoryLocation] = tt.initialMemoryValue
 
-			vm.dec_HL([]byte{0x00, 0x00})
+			vm.dcr_M([]byte{0x00, 0x00})
 
 			if vm.memory[tt.memoryLocation] != tt.expectedMemoryValue {
 				t.Errorf("Expected memory value=0x%02X; got 0x%02X", tt.expectedMemoryValue, vm.memory[tt.memoryLocation])
@@ -188,7 +188,7 @@ func TestDadDE(t *testing.T) {
 			vm.registers.E = tt.initialE
 			vm.flags.C = true
 
-			vm.dad_DE([]byte{0x00, 0x00})
+			vm.dad_D([]byte{0x00, 0x00})
 
 			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
 				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
