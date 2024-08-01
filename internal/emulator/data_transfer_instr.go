@@ -67,6 +67,13 @@ func (vm *CPU8080) load_DEA(data []byte) {
 	vm.registers.A = vm.memory[address]
 }
 
+// LDAX B: Load value from address in register pair B into accumulator.
+func (vm *CPU8080) load_BCA(data []byte) {
+	address := toUint16(vm.registers.B, vm.registers.C)
+	vm.Logger.Debugf("[0A] LD  \tA,(BC)")
+	vm.registers.A = vm.memory[address]
+}
+
 // MOV M, A: Move value from accumulator into register pair H.
 func (vm *CPU8080) load_HLA(data []byte) {
 	address := toUint16(vm.registers.H, vm.registers.L)

@@ -34,48 +34,41 @@ func (vm *CPU8080) inc_DE(data []byte) {
 	vm.registers.D, vm.registers.E = inc(vm.registers.D, vm.registers.E)
 }
 
-// DCR B: Decrement register B.
-func (vm *CPU8080) dec_B(data []byte) {
-	vm.Logger.Debugf("[05] DEC \tB")
-	result := uint16(vm.registers.B) - 1
+func (vm *CPU8080) dec(data byte) byte {
+	result := uint16(data) - 1
 
 	// Handle condition bits
 	vm.flags.setZ(result)
 	vm.flags.setS(result)
-	vm.flags.H = auxCarrySub(vm.registers.B, 1)
+	vm.flags.H = auxCarrySub(data, 1)
 	vm.flags.setP(result)
 
-	vm.registers.B--
+	return byte(result)
+}
+
+// DCR B: Decrement register B.
+func (vm *CPU8080) dec_B(data []byte) {
+	vm.Logger.Debugf("[05] DEC \tB")
+	vm.registers.B = vm.dec(vm.registers.B)
+}
+
+// DCR A: Decrement register A.
+func (vm *CPU8080) dec_A(data []byte) {
+	vm.Logger.Debugf("[3D] DEC \tA")
+	vm.registers.A = vm.dec(vm.registers.A)
 }
 
 // DCR M: Decrement memory location pointed to by register pair HL.
 func (vm *CPU8080) dec_HL(data []byte) {
 	vm.Logger.Debugf("[35] DEC \t(HL)")
 	memoryAddress := toUint16(vm.registers.H, vm.registers.L)
-	value := vm.memory[memoryAddress]
-	result := uint16(value) - 1
-
-	// Handle condition bits
-	vm.flags.setZ(result)
-	vm.flags.setS(result)
-	vm.flags.H = auxCarrySub(value, 1)
-	vm.flags.setP(result)
-
-	vm.memory[memoryAddress] = value - 1
+	vm.memory[memoryAddress] = vm.dec(vm.memory[memoryAddress])
 }
 
 // DCR C: Decrement register C.
 func (vm *CPU8080) dec_C(data []byte) {
 	vm.Logger.Debugf("[0D] DEC \tC")
-	result := uint16(vm.registers.C) - 1
-
-	// Handle condition bits
-	vm.flags.setZ(result)
-	vm.flags.setS(result)
-	vm.flags.H = auxCarrySub(vm.registers.C, 1)
-	vm.flags.setP(result)
-
-	vm.registers.C--
+	vm.registers.C = vm.dec(vm.registers.C)
 }
 
 // DAD H: Add register pair H to register pair H.
