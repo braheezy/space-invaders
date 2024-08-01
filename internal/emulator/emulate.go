@@ -90,19 +90,7 @@ func (vm *CPU8080) in(data []byte) {
 	vm.pc++
 	result, err := vm.Hardware.In(address)
 	if err != nil {
-		vm.Logger.Fatal("IN", "error", err)
+		vm.Logger.Fatal("IN", "address", fmt.Sprintf("%04X", vm.pc-2), "error", err)
 	}
 	vm.registers.A = result
-}
-
-func (vm *CPU8080) dumpVideoRAM() {
-	start := 0x2400
-	end := 0x2490
-	for i := start; i < end; i += 16 {
-		line := fmt.Sprintf("%04X: ", i)
-		for j := 0; j < 16; j++ {
-			line += fmt.Sprintf("%02X ", vm.memory[i+j])
-		}
-		vm.Logger.Print(line)
-	}
 }
