@@ -40,6 +40,7 @@ type CPU8080 struct {
 
 type CPU8080Options struct {
 	ProgramStartAddress uint16
+	stepWait            bool
 }
 
 type registers struct {
@@ -152,6 +153,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		interruptRequest:  make(chan byte, 1),
 		InterruptsEnabled: true,
 	}
+	vm.Options.stepWait = true
 	// Put the program into memory at the location it wants to be
 	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
 	vm.programSize = len(*program) + int(vm.Options.ProgramStartAddress)
@@ -229,8 +231,16 @@ func (vm *CPU8080) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return ebiten.Termination
 	}
+	if ebiten.IsKeyPressed(ebiten.KeySpace) {
+		vm.Options.stepWait = !vm.Options.stepWait
+	}
 
 	vm.cycleCount = 0
+	// if vm.Options.stepWait {
+	// 	vm.runCycles(17)
+
+	// 	vm.Options.stepWait = false
+	// }
 	vm.runCycles(vm.Hardware.CyclesPerFrame())
 
 	return nil

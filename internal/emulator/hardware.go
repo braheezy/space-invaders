@@ -1,13 +1,15 @@
 package emulator
 
 import (
+	"embed"
 	"fmt"
 	"image/color"
 
-	"github.com/braheezy/goqoa/pkg/qoa"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/oto"
 )
+
+//go:embed assets/*
+var soundFiles embed.FS
 
 type HardwareIO interface {
 	In(addr byte) (byte, error)
@@ -17,17 +19,26 @@ type HardwareIO interface {
 	CyclesPerFrame() int
 	Draw(*ebiten.Image)
 	Init(*[65536]byte)
+	Width() int
+	Height() int
+	Scale() int
 }
 
 type SpaceInvadersHardware struct {
 	watchdogTimer  byte
 	cyclesPerFrame int
-	DisplayScale   int
 	videoRAM       []byte
 	CoinDeposited  bool
-	audioChannels  map[byte]*oto.Player
-	qoaFiles       map[byte]*qoa.Reader
+	soundManager   *SoundManager
+	soundMapPort3  map[byte]string
+	soundMapPort5  map[byte]string
 }
+
+const (
+	videoWidth   = 224
+	videoHeight  = 256
+	displayScale = 3
+)
 
 func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 	var result byte
@@ -52,7 +63,9 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
 	switch addr {
 	case 0x03:
-		// TODO: SOUND1
+		si.handleSoundBits(value, si.soundMapPort3)
+	case 0x05:
+		si.handleSoundBits(value, si.soundMapPort5)
 	case 0x06:
 		si.watchdogTimer = value
 	default:
@@ -69,6 +82,8 @@ func (si *SpaceInvadersHardware) DeviceName(port byte) string {
 		return "INPUT2"
 	case 0x03:
 		return "SOUND1"
+	case 0x05:
+		return "SOUND2"
 	case 0x06:
 		return "WATCHDOG"
 	default:
@@ -102,48 +117,92 @@ func (si *SpaceInvadersHardware) CyclesPerFrame() int {
 }
 
 func NewSpaceInvadersHardware() *SpaceInvadersHardware {
+	soundManager, err := NewSoundManagerWithDefaults(soundFiles)
+	if err != nil {
+		panic(err)
+	}
+
+	soundMapPort3 := map[byte]string{
+		0x01: "assets/ufo_repeat_low.qoa",
+		0x02: "assets/shoot.wav",
+		0x04: "assets/player_die.wav",
+		0x08: "assets/invader_die.wav",
+		0x10: "assets/extra_play.qoa",
+		0x20: "assets/SX5.raw", // AMP enable
+	}
+
+	soundMapPort5 := map[byte]string{
+		0x01: "assets/fleet_move_1.raw",
+		0x02: "assets/fleet_move_2.raw",
+		0x04: "assets/fleet_move_3.raw",
+		0x08: "assets/fleet_move_4.raw",
+		0x10: "assets/ufo_hit.qoa",
+	}
+
 	return &SpaceInvadersHardware{
 		cyclesPerFrame: 33334,
-		DisplayScale:   5,
+		soundManager:   soundManager,
+		soundMapPort3:  soundMapPort3,
+		soundMapPort5:  soundMapPort5,
 	}
 }
 
 func (si *SpaceInvadersHardware) Init(memory *[65536]byte) {
-	si.videoRAM = (*memory)[0x2400 : 0x3FFF+1]
-	oto.NewContext(44100, 2, 16)
+	si.videoRAM = memory[0x2400:0x4000]
 }
-
 func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
-	scale := si.DisplayScale // Assume this is set to an appropriate scaling factor
-
-	// Create a single pixel image for reuse in drawing each "on" pixel
-	pixelImg := ebiten.NewImage(1, 1) // 1x1 pixel image
+	img := ebiten.NewImage(videoWidth, videoHeight)
 
 	// Iterate through each byte in the video RAM
 	for i, byteValue := range si.videoRAM {
-		// Calculate the corresponding x and y position on the rotated screen
-		x := i / 0x20
-		yBase := i % 0x20 * 8 // Start y position for this byte
+		// Calculate the original coordinates
+		originalX := (i % 32) * 8
+		originalY := i / 32
 
 		// Iterate through each bit in the byteValue
 		for bit := 0; bit < 8; bit++ {
 			// Determine if the current bit is "on" (1) or "off" (0)
 			pixelOn := byteValue&(1<<bit) != 0
-			y := yBase + (7 - bit) // Calculate y position, adjusting for bit position
 
-			// Set the color of the pixelImg based on the pixel state
+			// Calculate the original coordinates of the pixel
+			x := originalX + bit
+			y := originalY
+
+			// Transform coordinates for 90-degree counterclockwise rotation
+			rotatedX := y
+			rotatedY := videoHeight - 1 - x
+
+			// Set the color of the pixel
 			if pixelOn {
-				pixelImg.Fill(color.White) // Set pixel to white if "on"
+				img.Set(rotatedX, rotatedY, color.White) // Set pixel to white if "on"
 			} else {
-				continue // Skip drawing for "off" pixels to enhance performance
+				img.Set(rotatedX, rotatedY, color.Black) // Set pixel to black if "off"
 			}
-
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Scale(float64(scale), float64(scale))         // Scale up the pixel
-			op.GeoM.Translate(float64(x*scale), float64(y*scale)) // Move the pixel to its proper location
-
-			// Draw the scaled pixel image to the screen
-			screen.DrawImage(pixelImg, op)
 		}
 	}
+
+	// Scale and draw the offscreen image to the main screen
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(float64(displayScale), float64(displayScale))
+	screen.DrawImage(img, op)
+}
+
+func (si *SpaceInvadersHardware) handleSoundBits(value byte, soundMap map[byte]string) {
+	for bit, soundFile := range soundMap {
+		if value&bit != 0 {
+			si.soundManager.Play(soundFile)
+		} else {
+			si.soundManager.Pause(soundFile)
+		}
+	}
+}
+
+func (si *SpaceInvadersHardware) Width() int {
+	return videoWidth
+}
+func (si *SpaceInvadersHardware) Height() int {
+	return videoHeight
+}
+func (si *SpaceInvadersHardware) Scale() int {
+	return displayScale
 }

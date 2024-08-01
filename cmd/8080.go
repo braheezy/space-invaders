@@ -37,12 +37,13 @@ var rootCmd = &cobra.Command{
 			logger.Fatal(err)
 		}
 
-		ebiten.SetWindowTitle(fileName)
-		ebiten.SetTPS(60)
-
 		vm := emulator.NewCPU8080(&data, emulator.NewSpaceInvadersHardware())
 		vm.StartInterruptRoutines()
 		vm.Logger = logger
+
+		ebiten.SetWindowTitle(fileName)
+		ebiten.SetTPS(60)
+		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
 
 		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
 			logger.Fatal(err)

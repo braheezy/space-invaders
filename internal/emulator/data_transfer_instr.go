@@ -77,7 +77,7 @@ func (vm *CPU8080) load_HLA(data []byte) {
 // MOV L,A: Load value from accumulator into register L.
 func (vm *CPU8080) move_AL(data []byte) {
 	vm.Logger.Debugf("[6F] LD  \tL,A")
-	vm.registers.A = vm.registers.L
+	vm.registers.L = vm.registers.A
 }
 
 // MVI HL: Move 8-bit immediate value into memory address from register pair HL
