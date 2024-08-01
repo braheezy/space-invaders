@@ -28,7 +28,6 @@ type SpaceInvadersHardware struct {
 	watchdogTimer  byte
 	cyclesPerFrame int
 	videoRAM       []byte
-	CoinDeposited  bool
 	soundManager   *SoundManager
 	soundMapPort3  map[byte]string
 	soundMapPort5  map[byte]string
@@ -45,13 +44,40 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 
 	switch addr {
 	case 0x01:
-		if si.CoinDeposited {
+		if ebiten.IsKeyPressed(ebiten.KeyC) {
 			result |= 0x01
 		}
 	case 0x02:
-		var result byte
+		/*
+					Port 2
+			 bit 0 = DIP3 00 = 3 ships  10 = 5 ships
+			 bit 1 = DIP5 01 = 4 ships  11 = 6 ships
+			 bit 2 = Tilt
+			 bit 3 = DIP6 0 = extra ship at 1500, 1 = extra ship at 1000
+			 bit 4 = P2 shot (1 if pressed)
+			 bit 5 = P2 left (1 if pressed)
+			 bit 6 = P2 right (1 if pressed)
+			 bit 7 = DIP7 Coin info displayed in demo screen 0=ON
+		*/
+		// TODO: Make DIP setting user configurable
+		dip3 := false
+		dip5 := false
+		if !dip3 && !dip5 {
+			// 3 ships
+			result |= 0x00
+		} else if dip3 && !dip5 {
+			// 4 ships
+			result |= 0x01
+		} else if !dip3 && dip5 {
+			// 5 ships
+			result |= 0x02
+		} else if dip3 && dip5 {
+			// 6 ships
+			result |= 0x03
+		}
+
 		if ebiten.IsKeyPressed(ebiten.KeyT) {
-			result |= 0x04
+			result |= 0x04 // Tilt
 		}
 	default:
 		return 0, fmt.Errorf("unsupported hardware port: %02X", addr)
