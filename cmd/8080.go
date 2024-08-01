@@ -40,9 +40,16 @@ var rootCmd = &cobra.Command{
 		vm := emulator.NewCPU8080(&data, emulator.NewSpaceInvadersHardware())
 		vm.StartInterruptRoutines()
 		vm.Logger = logger
+		// TODO: Don't hardcode
+		vm.Options.UnlimitedTPS = true
 
 		ebiten.SetWindowTitle(fileName)
-		ebiten.SetTPS(60)
+		if vm.Options.UnlimitedTPS {
+			ebiten.SetTPS(ebiten.SyncWithFPS)
+
+		} else {
+			ebiten.SetTPS(60)
+		}
 		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
 
 		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {

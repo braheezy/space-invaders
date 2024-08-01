@@ -25,7 +25,10 @@ var stateCounts = []int{
 }
 
 func (vm *CPU8080) runCycles(cycleCount int) {
-	startTime := time.Now()
+	var startTime time.Time
+	if !vm.Options.UnlimitedTPS {
+		startTime = time.Now()
+	}
 
 	for vm.cycleCount < cycleCount {
 		select {
@@ -50,9 +53,11 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 		}
 	}
 
-	elapsed := time.Since(startTime)
-	if remaining := (17 * time.Millisecond) - elapsed; remaining > 0 {
-		time.Sleep(remaining)
+	if !vm.Options.UnlimitedTPS {
+		elapsed := time.Since(startTime)
+		if remaining := (17 * time.Millisecond) - elapsed; remaining > 0 {
+			time.Sleep(remaining)
+		}
 	}
 }
 
