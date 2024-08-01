@@ -11,8 +11,8 @@ import (
 )
 
 type SoundManager struct {
-	ctx          *oto.Context
-	soundPlayers map[string]*oto.Player
+	ctx     *oto.Context
+	players map[string]*oto.Player
 }
 
 func NewSoundManager(sampleRate int, channelCount int, soundFiles embed.FS) (*SoundManager, error) {
@@ -30,7 +30,7 @@ func NewSoundManager(sampleRate int, channelCount int, soundFiles embed.FS) (*So
 
 	sm := &SoundManager{}
 	// Initialize sound players, one per unique sound
-	sm.soundPlayers = make(map[string]*oto.Player)
+	sm.players = make(map[string]*oto.Player)
 	sm.ctx = ctx
 
 	// Wait for the audio context to be ready
@@ -46,7 +46,7 @@ func NewSoundManager(sampleRate int, channelCount int, soundFiles embed.FS) (*So
 				log.Fatal(err)
 			}
 			player := sm.ctx.NewPlayer(bytes.NewReader(data))
-			sm.soundPlayers[path] = player
+			sm.players[path] = player
 		}
 		return nil
 	})
@@ -62,13 +62,13 @@ func NewSoundManagerWithDefaults(soundFiles embed.FS) (*SoundManager, error) {
 }
 
 func (sm *SoundManager) Play(filePath string) {
-	if player, exists := sm.soundPlayers[filePath]; exists {
+	if player, exists := sm.players[filePath]; exists {
 		player.Play()
 	}
 }
 
 func (sm *SoundManager) Pause(filePath string) {
-	if player, exists := sm.soundPlayers[filePath]; exists {
+	if player, exists := sm.players[filePath]; exists {
 		player.Pause()
 	}
 }
