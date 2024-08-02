@@ -116,24 +116,36 @@ func (vm *CPU8080) rar(data []byte) {
 	vm.registers.A = (vm.registers.A >> 1) | (carryRotate << (8 - 1))
 }
 
-// RAL: Rotate accumulator left through carry.
-// The contents of the accumulator are rotated one bit position to the left.
-// The high order bit of the accumulator replaces the carry bit, while the carry bit replaces
-// the low order bit of the accumulator.
-
-// CPI D8: Compare 8-bit immediate value with accumulator.
-func (vm *CPU8080) cmp(data []byte) {
-	vm.Logger.Debugf("[FE] CP  \t$%02X", data[0])
-	result := uint16(vm.registers.A) - uint16(data[0])
+// compare helper
+func (vm *CPU8080) compare(data byte) {
+	result := uint16(vm.registers.A) - uint16(data)
 
 	// Handle condition bits
 	vm.flags.setZ(result)
 	vm.flags.setS(result)
-	vm.flags.C = carrySub(vm.registers.A, data[0])
-	vm.flags.H = auxCarrySub(vm.registers.A, data[0])
+	vm.flags.C = carrySub(vm.registers.A, data)
+	vm.flags.H = auxCarrySub(vm.registers.A, data)
 	vm.flags.setP(result)
+}
 
+// CPI D8: Compare 8-bit immediate value with accumulator.
+func (vm *CPU8080) cmp(data []byte) {
+	vm.Logger.Debugf("[FE] CP  \t$%02X", data[0])
+
+	vm.compare(data[0])
 	vm.pc++
+}
+
+// CMP B: Compare A with register B
+func (vm *CPU8080) cmp_B(data []byte) {
+	vm.Logger.Debugf("[B8] CP  \tB")
+	vm.compare(vm.registers.B)
+}
+
+// CMP M: Compare A with memory address pointed to by register pair HL
+func (vm *CPU8080) cmp_M(data []byte) {
+	vm.Logger.Debugf("[BE] CP  \t(HL)")
+	vm.compare(vm.memory[toUint16(vm.registers.H, vm.registers.L)])
 }
 
 // ana performs AND with data and accumulator, storing in accumulator.
@@ -153,6 +165,12 @@ func (vm *CPU8080) ana(data byte) {
 func (vm *CPU8080) ana_A(data []byte) {
 	vm.Logger.Debugf("[A7] AND \tA")
 	vm.ana(vm.registers.A)
+}
+
+// ANA B: AND register B with accumulator.
+func (vm *CPU8080) ana_B(data []byte) {
+	vm.Logger.Debugf("[A0] AND \tB")
+	vm.ana(vm.registers.B)
 }
 
 // XTHL: Exchange top of stack with address referenced by register pair HL.

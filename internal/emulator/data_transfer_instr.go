@@ -84,16 +84,14 @@ func (vm *CPU8080) moveImm_M(data []byte) {
 
 // LDAX D: Load value from address in register pair D into accumulator.
 func (vm *CPU8080) loadAddr_D(data []byte) {
-	address := toUint16(vm.registers.D, vm.registers.E)
 	vm.Logger.Debugf("[1A] LD  \tA,(DE)")
-	vm.registers.A = vm.memory[address]
+	vm.registers.A = vm.memory[toUint16(vm.registers.D, vm.registers.E)]
 }
 
 // LDAX B: Load value from address in register pair B into accumulator.
 func (vm *CPU8080) loadAddr_B(data []byte) {
-	address := toUint16(vm.registers.B, vm.registers.C)
 	vm.Logger.Debugf("[0A] LD  \tA,(BC)")
-	vm.registers.A = vm.memory[address]
+	vm.registers.A = vm.memory[toUint16(vm.registers.B, vm.registers.C)]
 }
 
 // MOV M,A: Move value from accumulator into register pair H.

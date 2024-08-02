@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 
 	"github.com/charmbracelet/log"
@@ -70,5 +71,6 @@ func (sm *SoundManager) Play(filePath string) {
 func (sm *SoundManager) Pause(filePath string) {
 	if player, exists := sm.players[filePath]; exists && player.IsPlaying() {
 		player.Pause()
+		player.Seek(0, io.SeekStart)
 	}
 }

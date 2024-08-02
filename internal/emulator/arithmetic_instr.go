@@ -65,19 +65,25 @@ func (vm *CPU8080) inc(data byte) byte {
 
 // INR A: Increment register A.
 func (vm *CPU8080) inr_A(data []byte) {
-	vm.Logger.Debugf("[3C] INR \tA")
+	vm.Logger.Debugf("[3C] INC \tA")
 	vm.registers.A = vm.inc(vm.registers.A)
 }
 
 // INR B: Increment register B.
 func (vm *CPU8080) inr_B(data []byte) {
-	vm.Logger.Debugf("[04] INR \tB")
+	vm.Logger.Debugf("[04] INC \tB")
 	vm.registers.B = vm.inc(vm.registers.B)
+}
+
+// INR C: Increment register C.
+func (vm *CPU8080) inr_C(data []byte) {
+	vm.Logger.Debugf("[0C] INC \tC")
+	vm.registers.C = vm.inc(vm.registers.C)
 }
 
 // INR D: Increment register D.
 func (vm *CPU8080) inr_D(data []byte) {
-	vm.Logger.Debugf("[14] INR \tD")
+	vm.Logger.Debugf("[14] INC \tD")
 	vm.registers.D = vm.inc(vm.registers.D)
 }
 

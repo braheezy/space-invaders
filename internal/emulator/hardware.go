@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 	"image/color"
-	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -289,7 +288,6 @@ func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 func (si *SpaceInvadersHardware) handleSoundBits(value byte, soundMap map[byte]string) {
 	for bit, soundFile := range soundMap {
 		if value&bit != 0 {
-			log.Fatalf("ooo u ready for sound?")
 			si.soundManager.Play(soundFile)
 		} else {
 			si.soundManager.Pause(soundFile)

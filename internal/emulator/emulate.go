@@ -40,6 +40,10 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 			}
 			currentCode := vm.memory[vm.pc : vm.pc+3]
 
+			if vm.pc == 0x18DC {
+				fmt.Printf("%v\n", vm.memory[0x2010:0x2020])
+			}
+
 			op := currentCode[0]
 			vm.pc++
 			vm.cycleCount += stateCounts[op]
