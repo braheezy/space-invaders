@@ -37,6 +37,20 @@ func (vm *CPU8080) call_Z(data []byte) {
 	}
 }
 
+// CNC addr: Call subroutine at address if carry flag not set
+func (vm *CPU8080) call_NC(data []byte) {
+	if !vm.flags.C {
+		jumpAddress := toUint16(data[1], data[0])
+		returnAddress := vm.pc + 2
+		vm.Logger.Debugf("[D4] CALL\tNC,$%04X", jumpAddress)
+		vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
+		vm.pc = jumpAddress
+	} else {
+		vm.Logger.Debugf("[D4] CALL\tNC,$%04X (not taken)", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
 // JMP: Jump to address.
 func (vm *CPU8080) jump(data []byte) {
 	operand := toUint16(data[1], data[0])

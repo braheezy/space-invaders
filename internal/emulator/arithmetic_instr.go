@@ -1,19 +1,53 @@
 package emulator
 
-// ADI D8: ADD accumulator with 8-bit immediate value.
-func (vm *CPU8080) adi(data []byte) {
-	vm.Logger.Debugf("[C6] ADD \tA,$%02X", data[0])
-	result := byte(uint16(vm.registers.A) + uint16(data[0]))
+// add helper
+func (vm *CPU8080) add(data byte) byte {
+	result := uint16(vm.registers.A) + uint16(data)
 
 	// Handle condition bits
 	vm.flags.setZ(uint16(result))
 	vm.flags.setS(uint16(result))
-	vm.flags.C = carryAdd(vm.registers.A, data[0])
-	vm.flags.H = auxCarryAdd(vm.registers.A, data[0])
+	vm.flags.C = carryAdd(vm.registers.A, data)
+	vm.flags.H = auxCarryAdd(vm.registers.A, data)
 	vm.flags.setP(uint16(result))
 
-	vm.registers.A = byte(result)
+	return byte(result)
+}
+
+// ADI: ADD accumulator with 8-bit immediate value.
+func (vm *CPU8080) adi(data []byte) {
+	vm.Logger.Debugf("[C6] ADD \tA,$%02X", data[0])
+
+	vm.registers.A = vm.add(data[0])
 	vm.pc++
+}
+
+// ADD B: ADD accumulator with register B.
+func (vm *CPU8080) add_B(data []byte) {
+	vm.Logger.Debug("[80] ADD \tA,B")
+
+	vm.registers.A = vm.add(vm.registers.B)
+}
+
+// ADD E: ADD accumulator with register E.
+func (vm *CPU8080) add_E(data []byte) {
+	vm.Logger.Debug("[83] ADD \tA,E")
+
+	vm.registers.A = vm.add(vm.registers.E)
+}
+
+// ADD M: ADD accumulator with memory address pointed to by register pair HL
+func (vm *CPU8080) add_M(data []byte) {
+	vm.Logger.Debug("[86] ADD \tA,(HL)")
+
+	vm.registers.A = vm.add(vm.memory[toUint16(vm.registers.H, vm.registers.L)])
+}
+
+// ADD L: ADD accumulator with register L.
+func (vm *CPU8080) add_L(data []byte) {
+	vm.Logger.Debug("[85] ADD \tA,L")
+
+	vm.registers.A = vm.add(vm.registers.L)
 }
 
 // increment helper
@@ -39,6 +73,12 @@ func (vm *CPU8080) inr_A(data []byte) {
 func (vm *CPU8080) inr_B(data []byte) {
 	vm.Logger.Debugf("[04] INR \tB")
 	vm.registers.B = vm.inc(vm.registers.B)
+}
+
+// INR D: Increment register D.
+func (vm *CPU8080) inr_D(data []byte) {
+	vm.Logger.Debugf("[14] INR \tD")
+	vm.registers.D = vm.inc(vm.registers.D)
 }
 
 // increment pair helper
@@ -81,16 +121,28 @@ func (vm *CPU8080) dcr(data byte) byte {
 	return byte(result)
 }
 
+// DCR A: Decrement register A.
+func (vm *CPU8080) dcr_A(data []byte) {
+	vm.Logger.Debugf("[3D] DEC \tA")
+	vm.registers.A = vm.dcr(vm.registers.A)
+}
+
 // DCR B: Decrement register B.
 func (vm *CPU8080) dcr_B(data []byte) {
 	vm.Logger.Debugf("[05] DEC \tB")
 	vm.registers.B = vm.dcr(vm.registers.B)
 }
 
-// DCR A: Decrement register A.
-func (vm *CPU8080) dcr_A(data []byte) {
-	vm.Logger.Debugf("[3D] DEC \tA")
-	vm.registers.A = vm.dcr(vm.registers.A)
+// DCR C: Decrement register C.
+func (vm *CPU8080) dcr_C(data []byte) {
+	vm.Logger.Debugf("[0D] DEC \tC")
+	vm.registers.C = vm.dcr(vm.registers.C)
+}
+
+// DCR D: Decrement register D.
+func (vm *CPU8080) dcr_D(data []byte) {
+	vm.Logger.Debugf("[15] DEC \tD")
+	vm.registers.D = vm.dcr(vm.registers.D)
 }
 
 // DCR M: Decrement memory location pointed to by register pair HL.
@@ -98,12 +150,6 @@ func (vm *CPU8080) dcr_M(data []byte) {
 	vm.Logger.Debugf("[35] DEC \t(HL)")
 	memoryAddress := toUint16(vm.registers.H, vm.registers.L)
 	vm.memory[memoryAddress] = vm.dcr(vm.memory[memoryAddress])
-}
-
-// DCR C: Decrement register C.
-func (vm *CPU8080) dcr_C(data []byte) {
-	vm.Logger.Debugf("[0D] DEC \tC")
-	vm.registers.C = vm.dcr(vm.registers.C)
 }
 
 // decrement pair helper
@@ -120,7 +166,7 @@ func (vm *CPU8080) dcx_H(data []byte) {
 	vm.registers.H, vm.registers.L = decPair(vm.registers.H, vm.registers.L)
 }
 
-// SUI D8: Subtract immediate value from accumulator.
+// SUI: Subtract immediate value from accumulator.
 func (vm *CPU8080) sui(data []byte) {
 	vm.Logger.Debugf("[D6] SUB \t$%02X", data[0])
 	result := uint16(vm.registers.A) - uint16(data[0])
@@ -131,6 +177,27 @@ func (vm *CPU8080) sui(data []byte) {
 	vm.flags.C = carrySub(vm.registers.A, data[0])
 	vm.flags.H = auxCarrySub(vm.registers.A, data[0])
 	vm.flags.setP(uint16(result))
+
+	vm.registers.A = byte(result)
+	vm.pc++
+}
+
+// SBI: Subtract immediate value from accumulator with borrow.
+func (vm *CPU8080) sbi(data []byte) {
+	vm.Logger.Debugf("[DE] SBI \t$%02X", data[0])
+	carry := uint16(0)
+	if vm.flags.C {
+		carry = 1
+	}
+	subtrahend := uint16(data[0]) + carry
+	result := uint16(vm.registers.A) - subtrahend
+
+	// Handle condition bits
+	vm.flags.setZ(result)
+	vm.flags.setS(result)
+	vm.flags.setP(result)
+	vm.flags.C = result > 0xFF
+	vm.flags.H = (int(vm.registers.A&0x0F) - int(data[0]&0x0F) - int(carry)) < 0
 
 	vm.registers.A = byte(result)
 	vm.pc++

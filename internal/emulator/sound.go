@@ -68,7 +68,7 @@ func (sm *SoundManager) Play(filePath string) {
 }
 
 func (sm *SoundManager) Pause(filePath string) {
-	if player, exists := sm.players[filePath]; exists {
+	if player, exists := sm.players[filePath]; exists && player.IsPlaying() {
 		player.Pause()
 	}
 }

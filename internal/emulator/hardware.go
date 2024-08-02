@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"image/color"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -47,8 +48,40 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 
 	switch addr {
 	case 0x01:
+		/*
+					Port 1
+			 bit 0 = CREDIT (1 if deposit)
+			 bit 1 = 2P start (1 if pressed)
+			 bit 2 = 1P start (1 if pressed)
+			 bit 3 = Always 1
+			 bit 4 = 1P shot (1 if pressed)
+			 bit 5 = 1P left (1 if pressed)
+			 bit 6 = 1P right (1 if pressed)
+			 bit 7 = Not connected
+		*/
+		// Credit button aka insert coin
 		if ebiten.IsKeyPressed(ebiten.KeyC) {
 			result |= 0x01
+		}
+		// Player 2 start
+		if ebiten.IsKeyPressed(ebiten.Key2) {
+			result |= 0x02
+		}
+		// Player 1 start
+		if ebiten.IsKeyPressed(ebiten.Key1) {
+			result |= 0x04
+		}
+		// Player 1 shoot
+		if ebiten.IsKeyPressed(ebiten.KeySpace) {
+			result |= 0x10
+		}
+		// Player 1 left
+		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+			result |= 0x20
+		}
+		// Player 1 right
+		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+			result |= 0x40
 		}
 	case 0x02:
 		/*
@@ -79,8 +112,21 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 			result |= 0x03
 		}
 
+		// Tilt
 		if ebiten.IsKeyPressed(ebiten.KeyT) {
-			result |= 0x04 // Tilt
+			result |= 0x04
+		}
+		// Player 2 shoot
+		if ebiten.IsKeyPressed(ebiten.KeySpace) {
+			result |= 0x10
+		}
+		// Player 2 left
+		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+			result |= 0x20
+		}
+		// Player 2 right
+		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+			result |= 0x40
 		}
 	case 0x03:
 		// Read from the shift register
@@ -202,6 +248,7 @@ func NewSpaceInvadersHardware() *SpaceInvadersHardware {
 func (si *SpaceInvadersHardware) Init(memory *[65536]byte) {
 	si.videoRAM = memory[0x2400:0x4000]
 }
+
 func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 	img := ebiten.NewImage(videoWidth, videoHeight)
 
@@ -242,6 +289,7 @@ func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 func (si *SpaceInvadersHardware) handleSoundBits(value byte, soundMap map[byte]string) {
 	for bit, soundFile := range soundMap {
 		if value&bit != 0 {
+			log.Fatalf("ooo u ready for sound?")
 			si.soundManager.Play(soundFile)
 		} else {
 			si.soundManager.Pause(soundFile)

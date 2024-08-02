@@ -32,17 +32,23 @@ func (vm *CPU8080) ora(reg byte) {
 	vm.registers.A = byte(result)
 }
 
+// ORA B: OR A with register B
+func (vm *CPU8080) ora_B(data []byte) {
+	vm.Logger.Debugf("[B0] OR  \tB")
+	vm.ora(vm.registers.B)
+}
+
+// ORA H: OR A with register H
+func (vm *CPU8080) ora_H(data []byte) {
+	vm.Logger.Debugf("[B4] OR  \tH")
+	vm.ora(vm.registers.H)
+}
+
 // ORA M: OR A with memory location pointed to by register pair HL
 func (vm *CPU8080) ora_M(data []byte) {
 	vm.Logger.Debugf("[B6] OR  \t(HL)")
 	address := toUint16(vm.registers.H, vm.registers.L)
 	vm.ora(vm.memory[address])
-}
-
-// ORA C: OR A with register B
-func (vm *CPU8080) ora_B(data []byte) {
-	vm.Logger.Debugf("[B0] OR  \tB")
-	vm.ora(vm.registers.B)
 }
 
 // ORI: OR A with immediate 8bit value
@@ -159,4 +165,43 @@ func (vm *CPU8080) xchg(data []byte) {
 	vm.Logger.Debugf("[EB] EX  \tDE,HL")
 	vm.registers.D, vm.registers.H = vm.registers.H, vm.registers.D
 	vm.registers.E, vm.registers.L = vm.registers.L, vm.registers.E
+}
+
+// DAA: Decimal Adjust Accumulator
+// The eight bit hex number in the accumulator is adjusted to form two
+// four bit binary decimal digits.
+func (vm *CPU8080) daa(data []byte) {
+	vm.Logger.Debugf("[27] DAA")
+	// Step 1: Adjust lower nibble
+	lower := vm.registers.A & 0x0F
+	if lower > 9 || vm.flags.H {
+		vm.registers.A += 6
+		vm.flags.H = lower < 6
+	} else {
+		vm.flags.H = false
+	}
+
+	// Step 2: Adjust upper nibble
+	if vm.registers.A > 0x9F || vm.flags.C {
+		vm.registers.A += 0x60
+		vm.flags.C = true
+	}
+
+	// Set Zero flag
+	vm.flags.Z = (vm.registers.A == 0)
+
+	// Set Sign flag
+	vm.flags.S = (vm.registers.A & 0x80) != 0
+
+	// Set Parity flag
+	vm.flags.P = (vm.registers.A & 0x01) == 0
+
+	// Corrected Parity flag calculation
+	count := 0
+	for i := 0; i < 8; i++ {
+		if (vm.registers.A & (1 << i)) != 0 {
+			count++
+		}
+	}
+	vm.flags.P = (count % 2) == 0
 }

@@ -115,6 +115,12 @@ func (vm *CPU8080) move_LB(data []byte) {
 	vm.registers.L = vm.registers.B
 }
 
+// MOV B,A: Load value from register A into register B.
+func (vm *CPU8080) move_BA(data []byte) {
+	vm.Logger.Debugf("[47] LD  \tB,A")
+	vm.registers.B = vm.registers.A
+}
+
 // MOV C,A: Load value from accumulator into register C.
 func (vm *CPU8080) move_CA(data []byte) {
 	vm.Logger.Debugf("[4F] LD  \tC,A")
