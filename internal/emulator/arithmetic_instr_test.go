@@ -199,3 +199,35 @@ func TestDadDE(t *testing.T) {
 		})
 	}
 }
+
+func TestDcxH(t *testing.T) {
+	tests := []struct {
+		name      string
+		initialH  byte
+		initialL  byte
+		expectedH byte
+		expectedL byte
+	}{
+		{
+			name:      "Normal decrement",
+			initialH:  0x98,
+			initialL:  0x00,
+			expectedH: 0x97,
+			expectedL: 0xFF,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := NewCPU8080(&[]byte{}, nil)
+			vm.registers.H = tt.initialH
+			vm.registers.L = tt.initialL
+
+			vm.dcx_H([]byte{0x00, 0x00})
+
+			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
+				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			}
+		})
+	}
+}

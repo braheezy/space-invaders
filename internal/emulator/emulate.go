@@ -73,7 +73,7 @@ func (vm *CPU8080) nop(data []byte) {
 // OUT D8: Output accumulator to device at 8-bit immediate address.
 func (vm *CPU8080) out(data []byte) {
 	address := data[0]
-	deviceName := vm.Hardware.DeviceName(address)
+	deviceName := vm.Hardware.OutDeviceName(address)
 	vm.Logger.Debugf("[D3] OUT \t(%s),A", deviceName)
 	vm.pc++
 	err := vm.Hardware.Out(address, vm.registers.A)
@@ -85,7 +85,7 @@ func (vm *CPU8080) out(data []byte) {
 // IN D8: Input accumulator from device at 8-bit immediate address.
 func (vm *CPU8080) in(data []byte) {
 	address := data[0]
-	deviceName := vm.Hardware.DeviceName(address)
+	deviceName := vm.Hardware.InDeviceName(address)
 	vm.Logger.Debugf("[D8] IN  \tA,(%s)", deviceName)
 	vm.pc++
 	result, err := vm.Hardware.In(address)

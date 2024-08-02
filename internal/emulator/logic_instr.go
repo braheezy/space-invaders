@@ -45,6 +45,13 @@ func (vm *CPU8080) ora_B(data []byte) {
 	vm.ora(vm.registers.B)
 }
 
+// ORI: OR A with immediate 8bit value
+func (vm *CPU8080) ori(data []byte) {
+	vm.Logger.Debugf("[F6] ORI \t$%02X", data[0])
+	vm.ora(data[0])
+	vm.pc++
+}
+
 // ANI D8: AND accumulator with 8-bit immediate value.
 func (vm *CPU8080) and(data []byte) {
 	vm.Logger.Debugf("[E6] AND \t$%02X", data[0])
@@ -73,6 +80,39 @@ func (vm *CPU8080) rrc(data []byte) {
 	// Rotate accumulator right
 	vm.registers.A = (vm.registers.A >> 1) | (vm.registers.A << (8 - 1))
 }
+
+// RLC: Rotate accumulator left. The Carry bit is set equal to the high-order
+// bit of the accumulator. The contents of the accumulator are rotated one bit
+// position to the left, with the high-order bit being transferred to the
+// low-order bit position of the accumulator
+func (vm *CPU8080) rlc(data []byte) {
+	vm.Logger.Debugf("[07] RLC \tA")
+	// Isolate most significant bit to check for Carry
+	vm.flags.C = (vm.registers.A & 0x80) == 0x80
+	// Rotate accumulator left
+	vm.registers.A = (vm.registers.A << 1) | (vm.registers.A >> (8 - 1))
+}
+
+// RAR: Rotate accumulator right through carry.
+// The contents of the accumulator are rotated one bit position to the right.
+// The low order bit of the accumulator replaces the carry bit, while the carry bit replaces
+// the high order bit of the accumulator.
+func (vm *CPU8080) rar(data []byte) {
+	vm.Logger.Debugf("[1F] RAR \tA")
+	var carryRotate uint8
+	if vm.flags.C {
+		carryRotate = 1
+	}
+	// Isolate least significant bit to check for Carry
+	vm.flags.C = vm.registers.A&0x01 != 0
+	// Rotate accumulator right through carry
+	vm.registers.A = (vm.registers.A >> 1) | (carryRotate << (8 - 1))
+}
+
+// RAL: Rotate accumulator left through carry.
+// The contents of the accumulator are rotated one bit position to the left.
+// The high order bit of the accumulator replaces the carry bit, while the carry bit replaces
+// the low order bit of the accumulator.
 
 // CPI D8: Compare 8-bit immediate value with accumulator.
 func (vm *CPU8080) cmp(data []byte) {
@@ -106,4 +146,17 @@ func (vm *CPU8080) ana(data byte) {
 func (vm *CPU8080) ana_A(data []byte) {
 	vm.Logger.Debugf("[A7] AND \tA")
 	vm.ana(vm.registers.A)
+}
+
+// XTHL: Exchange top of stack with address referenced by register pair HL.
+func (vm *CPU8080) xthl(data []byte) {
+	vm.Logger.Debugf("[E3] EX  \t(SP),HL")
+	vm.memory[vm.sp], vm.memory[vm.sp+1] = vm.registers.L, vm.registers.H
+}
+
+// XCHG: Exchange register pairs D and H.
+func (vm *CPU8080) xchg(data []byte) {
+	vm.Logger.Debugf("[EB] EX  \tDE,HL")
+	vm.registers.D, vm.registers.H = vm.registers.H, vm.registers.D
+	vm.registers.E, vm.registers.L = vm.registers.L, vm.registers.E
 }

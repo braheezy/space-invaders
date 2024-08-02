@@ -14,7 +14,8 @@ var soundFiles embed.FS
 type HardwareIO interface {
 	In(addr byte) (byte, error)
 	Out(addr byte, data byte) error
-	DeviceName(port byte) string
+	InDeviceName(port byte) string
+	OutDeviceName(port byte) string
 	InterruptConditions() []InterruptCondition
 	CyclesPerFrame() int
 	Draw(*ebiten.Image)
@@ -31,6 +32,8 @@ type SpaceInvadersHardware struct {
 	soundManager   *SoundManager
 	soundMapPort3  map[byte]string
 	soundMapPort5  map[byte]string
+	shiftAmount    byte
+	shiftRegister  uint16
 }
 
 const (
@@ -79,6 +82,10 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 		if ebiten.IsKeyPressed(ebiten.KeyT) {
 			result |= 0x04 // Tilt
 		}
+	case 0x03:
+		// Read from the shift register
+		shiftedValue := si.shiftRegister >> (8 - si.shiftAmount)
+		result = byte(shiftedValue & 0xFF)
 	default:
 		return 0, fmt.Errorf("unsupported hardware port: %02X", addr)
 	}
@@ -88,6 +95,12 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 
 func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
 	switch addr {
+	case 0x02:
+		// Set the shift offset, using only the lowest 3 bits
+		si.shiftAmount = value & 0x07
+	case 0x04:
+		// Write to the shift register
+		si.shiftRegister = (uint16(value) << 8) | (si.shiftRegister >> 8)
 	case 0x03:
 		si.handleSoundBits(value, si.soundMapPort3)
 	case 0x05:
@@ -100,18 +113,31 @@ func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
 	return nil
 }
 
-func (si *SpaceInvadersHardware) DeviceName(port byte) string {
+func (si *SpaceInvadersHardware) OutDeviceName(port byte) string {
+	switch port {
+	case 0x02:
+		return "SHFTAMNT"
+	case 0x03:
+		return "SOUND1"
+	case 0x04:
+		return "SHFT_DATA"
+	case 0x05:
+		return "SOUND2"
+	case 0x06:
+		return "WATCHDOG"
+	default:
+		return fmt.Sprintf("$%02X", port) // Default to hex representation if unknown
+	}
+}
+
+func (si *SpaceInvadersHardware) InDeviceName(port byte) string {
 	switch port {
 	case 0x01:
 		return "INPUT1"
 	case 0x02:
 		return "INPUT2"
 	case 0x03:
-		return "SOUND1"
-	case 0x05:
-		return "SOUND2"
-	case 0x06:
-		return "WATCHDOG"
+		return "SHFT_IN"
 	default:
 		return fmt.Sprintf("$%02X", port) // Default to hex representation if unknown
 	}

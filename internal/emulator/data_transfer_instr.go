@@ -67,6 +67,13 @@ func (vm *CPU8080) moveImm_L(data []byte) {
 	vm.pc++
 }
 
+// MVI D, D8: Move 8-bit immediate value into register L.
+func (vm *CPU8080) moveImm_D(data []byte) {
+	vm.Logger.Debugf("[16] LD  \tD,$%02X", data[0])
+	vm.registers.D = data[0]
+	vm.pc++
+}
+
 // MVI M: Move 8-bit immediate value into memory address from register pair HL
 func (vm *CPU8080) moveImm_M(data []byte) {
 	address := toUint16(vm.registers.H, vm.registers.L)
@@ -102,6 +109,12 @@ func (vm *CPU8080) move_LA(data []byte) {
 	vm.registers.L = vm.registers.A
 }
 
+// MOV L,B: Load value from register B into register L.
+func (vm *CPU8080) move_LB(data []byte) {
+	vm.Logger.Debugf("[68] LD  \tL,B")
+	vm.registers.L = vm.registers.B
+}
+
 // MOV C,A: Load value from accumulator into register C.
 func (vm *CPU8080) move_CA(data []byte) {
 	vm.Logger.Debugf("[4F] LD  \tC,A")
@@ -114,6 +127,12 @@ func (vm *CPU8080) move_AC(data []byte) {
 	vm.registers.A = vm.registers.C
 }
 
+// MOV H,C: Load value from register C into register H.
+func (vm *CPU8080) move_HC(data []byte) {
+	vm.Logger.Debugf("[61] LD  \tA,C")
+	vm.registers.H = vm.registers.C
+}
+
 // MOV E,M: Move memory location pointed to by register pair HL into register E.
 func (vm *CPU8080) move_EM(data []byte) {
 	vm.Logger.Debugf("[5E] LD  \tE,(HL)")
@@ -124,6 +143,12 @@ func (vm *CPU8080) move_EM(data []byte) {
 func (vm *CPU8080) move_BM(data []byte) {
 	vm.Logger.Debugf("[46] LD  \tB,(HL)")
 	vm.registers.B = vm.memory[toUint16(vm.registers.H, vm.registers.L)]
+}
+
+// MOV C,M: Move memory location pointed to by register pair HL into register C.
+func (vm *CPU8080) move_CM(data []byte) {
+	vm.Logger.Debugf("[4E] LD  \tC,(HL)")
+	vm.registers.C = vm.memory[toUint16(vm.registers.H, vm.registers.L)]
 }
 
 // MOV D,M: Move memory location pointed to by register pair HL into register D.
@@ -142,6 +167,12 @@ func (vm *CPU8080) move_AM(data []byte) {
 func (vm *CPU8080) move_HM(data []byte) {
 	vm.Logger.Debugf("[66] LD  \tH,(HL)")
 	vm.registers.H = vm.memory[toUint16(vm.registers.H, vm.registers.L)]
+}
+
+// MOV M,B: Move register B into memory location pointed to by register pair HL.
+func (vm *CPU8080) move_MH(data []byte) {
+	vm.Logger.Debugf("[70] LD  \t(HL),B")
+	vm.memory[toUint16(vm.registers.H, vm.registers.L)] = vm.registers.B
 }
 
 // MOV A,H: Move value from register H into accumulator.
@@ -174,6 +205,12 @@ func (vm *CPU8080) move_HA(data []byte) {
 	vm.registers.H = vm.registers.A
 }
 
+// MOV A,B: Move value from register B into accumulator.
+func (vm *CPU8080) move_AB(data []byte) {
+	vm.Logger.Debugf("[78] LD  \tA,B")
+	vm.registers.A = vm.registers.B
+}
+
 // MOV E,A: Move value from accumulator into register E.
 func (vm *CPU8080) move_EA(data []byte) {
 	vm.Logger.Debugf("[5F] LD  \tE,A")
@@ -199,5 +236,23 @@ func (vm *CPU8080) load_A(data []byte) {
 	address := toUint16(data[1], data[0])
 	vm.Logger.Debugf("[3A] LD  \tA,$%04X", address)
 	vm.registers.A = vm.memory[address]
+	vm.pc += 2
+}
+
+// LHLD A16: Load register pair HL from 16-bit immediate address.
+func (vm *CPU8080) loadImm_HL(data []byte) {
+	address := toUint16(data[1], data[0])
+	vm.Logger.Debugf("[2A] LD  \tHL,$%04X", address)
+	vm.registers.L = vm.memory[address]
+	vm.registers.H = vm.memory[address+1]
+	vm.pc += 2
+}
+
+// SHLD A16: Store register pair HL into 16-bit immediate address.
+func (vm *CPU8080) store_HL(data []byte) {
+	address := toUint16(data[1], data[0])
+	vm.Logger.Debugf("[22] LD  \t$%04X,HL", address)
+	vm.memory[address] = vm.registers.L
+	vm.memory[address+1] = vm.registers.H
 	vm.pc += 2
 }

@@ -2,6 +2,8 @@ package emulator
 
 import "testing"
 
+var noOpLogger = func(format string, args ...interface{}) {}
+
 func TestXRA(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -303,4 +305,74 @@ func TestORA(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRLC(t *testing.T) {
+
+	// Initialize a CPU8080 instance with a dummy program and hardware IO
+	vm := NewCPU8080(&[]byte{}, nil)
+
+	tests := []struct {
+		name      string
+		initialA  byte // Initial accumulator value
+		expectedA byte // Expected accumulator value after RLC
+		expectedC bool // Expected Carry flag
+	}{
+		{
+			name:      "RLC with zero",
+			initialA:  0x00,
+			expectedA: 0x00,
+			expectedC: false,
+		},
+		{
+			name:      "RLC with non-zero",
+			initialA:  0x0F,
+			expectedA: 0x1E,
+			expectedC: false,
+		},
+		{
+			name:      "RLC with carry",
+			initialA:  0x0F2,
+			expectedA: 0x0E5,
+			expectedC: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset flags and set the initial accumulator value
+			vm.flags = flags{}
+			vm.registers.A = tt.initialA
+
+			// Execute the RLC function
+			vm.rlc([]byte{0})
+
+			// Check the accumulator's value and flags
+			if vm.registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.registers.A)
+			}
+			if vm.flags.C != tt.expectedC {
+				t.Errorf("%s: expected C flag %t, got %t", tt.name, tt.expectedC, vm.flags.C)
+			}
+		})
+	}
+}
+
+func TestRAR(t *testing.T) {
+	vm := NewCPU8080(&[]byte{}, nil)
+	vm.registers.A = 0x6A
+	vm.flags.C = true
+
+	vm.rar(nil)
+
+	expectedA := byte(0xB5)
+	expectedC := false
+
+	if vm.registers.A != expectedA {
+		t.Errorf("expected accumulator %02X, got %02X", expectedA, vm.registers.A)
+	}
+	if vm.flags.C != expectedC {
+		t.Errorf("expected C flag %t, got %t", expectedC, vm.flags.C)
+	}
+
 }

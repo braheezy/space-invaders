@@ -9,6 +9,34 @@ func (vm *CPU8080) call(data []byte) {
 	vm.pc = jumpAddress
 }
 
+// CNZ addr: Call subroutine at address if zero flag not set
+func (vm *CPU8080) call_NZ(data []byte) {
+	if !vm.flags.Z {
+		jumpAddress := toUint16(data[1], data[0])
+		returnAddress := vm.pc + 2
+		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X", jumpAddress)
+		vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
+		vm.pc = jumpAddress
+	} else {
+		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X (not taken)", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
+// CZ addr: Call subroutine at address if zero flag is set
+func (vm *CPU8080) call_Z(data []byte) {
+	if vm.flags.Z {
+		jumpAddress := toUint16(data[1], data[0])
+		returnAddress := vm.pc + 2
+		vm.Logger.Debugf("[CC] CALL\tZ,$%04X", jumpAddress)
+		vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
+		vm.pc = jumpAddress
+	} else {
+		vm.Logger.Debugf("[CC] CALL\tZ,$%04X (not taken)", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
 // JMP: Jump to address.
 func (vm *CPU8080) jump(data []byte) {
 	operand := toUint16(data[1], data[0])
@@ -64,6 +92,18 @@ func (vm *CPU8080) jump_C(data []byte) {
 	}
 }
 
+// JM addr: Jump if minus.
+func (vm *CPU8080) jump_m(data []byte) {
+	operand := toUint16(data[1], data[0])
+	if vm.flags.S {
+		vm.Logger.Debugf("[FA] JP  \tM, $%04X", operand)
+		vm.pc = operand
+	} else {
+		vm.Logger.Debugf("[FA] JP  \tM,$%04X", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
 // return helper
 func (vm *CPU8080) _ret() {
 	address := toUint16(vm.memory[vm.sp+1], vm.memory[vm.sp])
@@ -115,4 +155,10 @@ func (vm *CPU8080) ret_NC(data []byte) {
 	} else {
 		vm.Logger.Debugf("[D0] RET \tNC (not taken)")
 	}
+}
+
+// PCHL: Load program counter from H and L registers.
+func (vm *CPU8080) pchl(data []byte) {
+	vm.pc = toUint16(vm.registers.H, vm.registers.L)
+	vm.Logger.Debugf("[E9] PCHL\t($%04X)", vm.pc)
 }
