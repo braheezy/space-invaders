@@ -114,7 +114,6 @@ func (vm *CPU8080) dcr(data byte) byte {
 	// Handle condition bits
 	vm.flags.setZ(result)
 	vm.flags.setS(result)
-	vm.flags.C = carrySub(data, 1)
 	vm.flags.H = auxCarrySub(data, 1)
 	vm.flags.setP(result)
 
@@ -185,11 +184,11 @@ func (vm *CPU8080) sui(data []byte) {
 // SBI: Subtract immediate value from accumulator with borrow.
 func (vm *CPU8080) sbi(data []byte) {
 	vm.Logger.Debugf("[DE] SBI \t$%02X", data[0])
-	carry := uint16(0)
+	carry := byte(0)
 	if vm.flags.C {
 		carry = 1
 	}
-	subtrahend := uint16(data[0]) + carry
+	subtrahend := uint16(data[0]) + uint16(carry)
 	result := uint16(vm.registers.A) - subtrahend
 
 	// Handle condition bits
@@ -197,7 +196,9 @@ func (vm *CPU8080) sbi(data []byte) {
 	vm.flags.setS(result)
 	vm.flags.setP(result)
 	vm.flags.C = result > 0xFF
+
 	vm.flags.H = (int(vm.registers.A&0x0F) - int(data[0]&0x0F) - int(carry)) < 0
+	// vm.flags.H = (vm.registers.A & 0xF) < ((data[0] + carry) & 0xF)
 
 	vm.registers.A = byte(result)
 	vm.pc++

@@ -9,6 +9,7 @@ func (vm *CPU8080) xra(reg byte) {
 	vm.flags.setS(result)
 	vm.flags.C = false
 	vm.flags.setP(result)
+	vm.flags.H = false
 
 	vm.registers.A = byte(result)
 }
