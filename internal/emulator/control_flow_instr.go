@@ -2,9 +2,9 @@ package emulator
 
 // call helper
 func (vm *CPU8080) _call(jumpAddress uint16) {
-	returnAddress := vm.pc + 2
+	returnAddress := vm.PC + 2
 	vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
-	vm.pc = jumpAddress
+	vm.PC = jumpAddress
 }
 
 // CALL addr: Call subroutine at address
@@ -21,8 +21,8 @@ func (vm *CPU8080) call_NZ(data []byte) {
 		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X", jumpAddress)
 		vm._call(jumpAddress)
 	} else {
-		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X (not taken)", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X (not taken)", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -33,8 +33,8 @@ func (vm *CPU8080) call_Z(data []byte) {
 		vm.Logger.Debugf("[CC] CALL\tZ,$%04X", jumpAddress)
 		vm._call(jumpAddress)
 	} else {
-		vm.Logger.Debugf("[CC] CALL\tZ,$%04X (not taken)", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[CC] CALL\tZ,$%04X (not taken)", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -45,8 +45,8 @@ func (vm *CPU8080) call_NC(data []byte) {
 		vm.Logger.Debugf("[D4] CALL\tNC,$%04X", jumpAddress)
 		vm._call(jumpAddress)
 	} else {
-		vm.Logger.Debugf("[D4] CALL\tNC,$%04X (not taken)", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[D4] CALL\tNC,$%04X (not taken)", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -57,8 +57,8 @@ func (vm *CPU8080) call_P(data []byte) {
 		vm.Logger.Debugf("[F4] CALL\tP,$%04X", jumpAddress)
 		vm._call(jumpAddress)
 	} else {
-		vm.Logger.Debugf("[F4] CALL\tP,$%04X (not taken)", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[F4] CALL\tP,$%04X (not taken)", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -66,7 +66,7 @@ func (vm *CPU8080) call_P(data []byte) {
 func (vm *CPU8080) jump(data []byte) {
 	address := toUint16(data[1], data[0])
 	vm.Logger.Debugf("[C3] JMP \t$%04X", address)
-	vm.pc = address
+	vm.PC = address
 }
 
 // JNZ addr: Jump if not zero.
@@ -74,10 +74,10 @@ func (vm *CPU8080) jump_NZ(data []byte) {
 	operand := toUint16(data[1], data[0])
 	if !vm.flags.Z {
 		vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", operand)
-		vm.pc = operand
+		vm.PC = operand
 	} else {
-		vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[C2] JP  \tNZ,$%04X", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -86,10 +86,10 @@ func (vm *CPU8080) jump_Z(data []byte) {
 	operand := toUint16(data[1], data[0])
 	if vm.flags.Z {
 		vm.Logger.Debugf("[CA] JP  \tZ,$%04X", operand)
-		vm.pc = operand
+		vm.PC = operand
 	} else {
-		vm.Logger.Debugf("[CA] JP  \tZ,$%04X", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[CA] JP  \tZ,$%04X", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -98,10 +98,10 @@ func (vm *CPU8080) jump_NC(data []byte) {
 	operand := toUint16(data[1], data[0])
 	if !vm.flags.C {
 		vm.Logger.Debugf("[D2] JP  \tNC, $%04X", operand)
-		vm.pc = operand
+		vm.PC = operand
 	} else {
-		vm.Logger.Debugf("[D2] JP  \tNC,$%04X", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[D2] JP  \tNC,$%04X", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -110,10 +110,10 @@ func (vm *CPU8080) jump_C(data []byte) {
 	operand := toUint16(data[1], data[0])
 	if vm.flags.C {
 		vm.Logger.Debugf("[DA] JP  \tC, $%04X", operand)
-		vm.pc = operand
+		vm.PC = operand
 	} else {
-		vm.Logger.Debugf("[DA] JP  \tC,$%04X", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[DA] JP  \tC,$%04X", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
@@ -122,31 +122,31 @@ func (vm *CPU8080) jump_m(data []byte) {
 	operand := toUint16(data[1], data[0])
 	if vm.flags.S {
 		vm.Logger.Debugf("[FA] JP  \tM, $%04X", operand)
-		vm.pc = operand
+		vm.PC = operand
 	} else {
-		vm.Logger.Debugf("[FA] JP  \tM,$%04X", vm.pc+2)
-		vm.pc += 2
+		vm.Logger.Debugf("[FA] JP  \tM,$%04X", vm.PC+2)
+		vm.PC += 2
 	}
 }
 
 // return helper
 func (vm *CPU8080) _ret() {
-	address := toUint16(vm.memory[vm.sp+1], vm.memory[vm.sp])
-	vm.pc = address
+	address := toUint16(vm.Memory[vm.sp+1], vm.Memory[vm.sp])
+	vm.PC = address
 	vm.sp += 2
 }
 
 // RET: Return from subroutine.
 func (vm *CPU8080) ret(data []byte) {
 	vm._ret()
-	vm.Logger.Debugf("[C9] RET \t($%04X)", vm.pc)
+	vm.Logger.Debugf("[C9] RET \t($%04X)", vm.PC)
 }
 
 // RZ: Return from subroutine if Z flag is set.
 func (vm *CPU8080) ret_Z(data []byte) {
 	if vm.flags.Z {
 		vm._ret()
-		vm.Logger.Debugf("[C8] RET \tZ($%04X)", vm.pc)
+		vm.Logger.Debugf("[C8] RET \tZ($%04X)", vm.PC)
 	} else {
 		vm.Logger.Debugf("[C8] RET \tZ (not taken)")
 	}
@@ -156,7 +156,7 @@ func (vm *CPU8080) ret_Z(data []byte) {
 func (vm *CPU8080) ret_NZ(data []byte) {
 	if !vm.flags.Z {
 		vm._ret()
-		vm.Logger.Debugf("[C0] RET \tNZ($%04X)", vm.pc)
+		vm.Logger.Debugf("[C0] RET \tNZ($%04X)", vm.PC)
 	} else {
 		vm.Logger.Debugf("[C0] RET \tNZ (not taken)")
 	}
@@ -166,7 +166,7 @@ func (vm *CPU8080) ret_NZ(data []byte) {
 func (vm *CPU8080) ret_C(data []byte) {
 	if vm.flags.C {
 		vm._ret()
-		vm.Logger.Debugf("[D8] RET \tC($%04X)", vm.pc)
+		vm.Logger.Debugf("[D8] RET \tC($%04X)", vm.PC)
 	} else {
 		vm.Logger.Debugf("[D8] RET \tC (not taken)")
 	}
@@ -176,7 +176,7 @@ func (vm *CPU8080) ret_C(data []byte) {
 func (vm *CPU8080) ret_NC(data []byte) {
 	if !vm.flags.C {
 		vm._ret()
-		vm.Logger.Debugf("[D0] RET \tNC($%04X)", vm.pc)
+		vm.Logger.Debugf("[D0] RET \tNC($%04X)", vm.PC)
 	} else {
 		vm.Logger.Debugf("[D0] RET \tNC (not taken)")
 	}
@@ -184,6 +184,6 @@ func (vm *CPU8080) ret_NC(data []byte) {
 
 // PCHL: Load program counter from H and L registers.
 func (vm *CPU8080) pchl(data []byte) {
-	vm.pc = toUint16(vm.registers.H, vm.registers.L)
-	vm.Logger.Debugf("[E9] PCHL\t($%04X)", vm.pc)
+	vm.PC = toUint16(vm.Registers.H, vm.Registers.L)
+	vm.Logger.Debugf("[E9] PCHL\t($%04X)", vm.PC)
 }

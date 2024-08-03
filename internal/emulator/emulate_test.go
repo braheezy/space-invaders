@@ -32,14 +32,14 @@ func TestRRC(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the accumulator to the initial value
-			vm.registers.A = tt.initialA
+			vm.Registers.A = tt.initialA
 
 			// Execute the rrc function
 			vm.rrc(nil) // The data slice is not used in the function
 
 			// Check if the accumulator has the expected value
-			if vm.registers.A != tt.expectedA {
-				t.Errorf("Expected accumulator value %08b, got %08b", tt.expectedA, vm.registers.A)
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("Expected accumulator value %08b, got %08b", tt.expectedA, vm.Registers.A)
 			}
 
 			// Check if the carry flag is set as expected
@@ -86,15 +86,15 @@ func TestDAD_DE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the initial D and E register values
-			vm.registers.D = tt.initialD
-			vm.registers.E = tt.initialE
+			vm.Registers.D = tt.initialD
+			vm.Registers.E = tt.initialE
 
 			// Execute the dad_DE function
 			vm.dad_D(nil) // The data slice is not used in the function
 
 			// Check if the H and L registers have the expected values
-			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
-				t.Errorf("Expected HL value %02X%02X, got %02X%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			if vm.Registers.H != tt.expectedH || vm.Registers.L != tt.expectedL {
+				t.Errorf("Expected HL value %02X%02X, got %02X%02X", tt.expectedH, tt.expectedL, vm.Registers.H, vm.Registers.L)
 			}
 
 			// Check if the carry flag is set as expected
@@ -183,19 +183,19 @@ func TestCMP_B(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the initial A register value
-			vm.registers.A = tt.initialA
-			vm.registers.B = tt.initialB
+			vm.Registers.A = tt.initialA
+			vm.Registers.B = tt.initialB
 			vm.flags.C = tt.initialC
 			vm.flags.Z = tt.initialZ
 
 			// Execute the cmp function
 			vm.cmp_B(nil)
 
-			if vm.registers.A != tt.initialA {
+			if vm.Registers.A != tt.initialA {
 				t.Error("Expected unchanged vm.registers.A")
 			}
 
-			if vm.registers.B != tt.initialB {
+			if vm.Registers.B != tt.initialB {
 				t.Error("Expected unchanged vm.registers.B")
 			}
 

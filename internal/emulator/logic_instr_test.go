@@ -48,14 +48,14 @@ func TestXRA(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vm := &CPU8080{
-				registers: struct{ A, B, C, D, E, H, L byte }{A: tt.initialA},
+				Registers: struct{ A, B, C, D, E, H, L byte }{A: tt.initialA},
 				flags:     flags{},
 			}
 
 			vm.xra(tt.reg)
 
-			if vm.registers.A != tt.expectedA {
-				t.Errorf("Expected accumulator value %02X, got %02X", tt.expectedA, vm.registers.A)
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("Expected accumulator value %02X, got %02X", tt.expectedA, vm.Registers.A)
 			}
 			if vm.flags.Z != tt.expectedZ {
 				t.Errorf("Expected Zero flag %t, got %t", tt.expectedZ, vm.flags.Z)
@@ -123,14 +123,14 @@ func TestAND(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset flags and set the initial accumulator value
 			vm.flags = flags{}
-			vm.registers.A = tt.initialA
+			vm.Registers.A = tt.initialA
 
 			// Execute the and function with the test data
 			vm.and([]byte{tt.data})
 
 			// Check the accumulator's value and flags
-			if vm.registers.A != tt.expectedA {
-				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.registers.A)
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.Registers.A)
 			}
 			if vm.flags.Z != tt.expectedZ {
 				t.Errorf("%s: expected Z flag %t, got %t", tt.name, tt.expectedZ, vm.flags.Z)
@@ -195,14 +195,14 @@ func TestANA(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			vm := NewCPU8080(&[]byte{}, nil) // Assuming NewCPU8080 initializes the CPU state including flags and registers
-			vm.registers.A = tt.initialAccumulator
+			vm.Registers.A = tt.initialAccumulator
 
 			// Execute
 			vm.ana(tt.data)
 
 			// Verify accumulator and flags
-			if vm.registers.A != tt.expectedAccumulator {
-				t.Errorf("Expected accumulator %02x, got %02x", tt.expectedAccumulator, vm.registers.A)
+			if vm.Registers.A != tt.expectedAccumulator {
+				t.Errorf("Expected accumulator %02x, got %02x", tt.expectedAccumulator, vm.Registers.A)
 			}
 			if vm.flags.Z != tt.expectedZeroFlag {
 				t.Errorf("Expected zero flag %t, got %t", tt.expectedZeroFlag, vm.flags.Z)
@@ -280,14 +280,14 @@ func TestORA(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset flags and set the initial accumulator value
 			vm.flags = flags{}
-			vm.registers.A = tt.initialA
+			vm.Registers.A = tt.initialA
 
 			// Execute the ora function with the test data
 			vm.ora(tt.data)
 
 			// Check the accumulator's value and flags
-			if vm.registers.A != tt.expectedA {
-				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.registers.A)
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.Registers.A)
 			}
 			if vm.flags.Z != tt.expectedZ {
 				t.Errorf("%s: expected Z flag %t, got %t", tt.name, tt.expectedZ, vm.flags.Z)
@@ -340,14 +340,14 @@ func TestRLC(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset flags and set the initial accumulator value
 			vm.flags = flags{}
-			vm.registers.A = tt.initialA
+			vm.Registers.A = tt.initialA
 
 			// Execute the RLC function
 			vm.rlc([]byte{0})
 
 			// Check the accumulator's value and flags
-			if vm.registers.A != tt.expectedA {
-				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.registers.A)
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.Registers.A)
 			}
 			if vm.flags.C != tt.expectedC {
 				t.Errorf("%s: expected C flag %t, got %t", tt.name, tt.expectedC, vm.flags.C)
@@ -358,7 +358,7 @@ func TestRLC(t *testing.T) {
 
 func TestRAR(t *testing.T) {
 	vm := NewCPU8080(&[]byte{}, nil)
-	vm.registers.A = 0x6A
+	vm.Registers.A = 0x6A
 	vm.flags.C = true
 
 	vm.rar(nil)
@@ -366,8 +366,8 @@ func TestRAR(t *testing.T) {
 	expectedA := byte(0xB5)
 	expectedC := false
 
-	if vm.registers.A != expectedA {
-		t.Errorf("expected accumulator %02X, got %02X", expectedA, vm.registers.A)
+	if vm.Registers.A != expectedA {
+		t.Errorf("expected accumulator %02X, got %02X", expectedA, vm.Registers.A)
 	}
 	if vm.flags.C != expectedC {
 		t.Errorf("expected C flag %t, got %t", expectedC, vm.flags.C)

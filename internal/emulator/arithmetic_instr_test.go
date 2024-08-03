@@ -57,14 +57,14 @@ func TestADD(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset flags and set the initial accumulator value
 			vm.flags = flags{}
-			vm.registers.A = tt.initialA
+			vm.Registers.A = tt.initialA
 
 			// Execute the add function with the test data
 			vm.adi([]byte{tt.data})
 
 			// Check the accumulator's value and flags
-			if vm.registers.A != tt.expectedA {
-				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.registers.A)
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.Registers.A)
 			}
 			if vm.flags.Z != tt.expectedZ {
 				t.Errorf("%s: expected Z flag %t, got %t", tt.name, tt.expectedZ, vm.flags.Z)
@@ -109,14 +109,14 @@ func TestIncHL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vm := NewCPU8080(&[]byte{}, nil)
-			vm.registers.H = tt.initialH
-			vm.registers.L = tt.initialL
+			vm.Registers.H = tt.initialH
+			vm.Registers.L = tt.initialL
 			vm.flags.C = tt.carryFlagSet
 
 			vm.inx_H([]byte{0x00, 0x00})
 
-			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
-				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			if vm.Registers.H != tt.expectedH || vm.Registers.L != tt.expectedL {
+				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.Registers.H, vm.Registers.L)
 			}
 		})
 	}
@@ -144,14 +144,14 @@ func TestDecHL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vm := NewCPU8080(&[]byte{}, nil)
-			vm.registers.H = tt.initialH
-			vm.registers.L = tt.initialL
-			vm.memory[tt.memoryLocation] = tt.initialMemoryValue
+			vm.Registers.H = tt.initialH
+			vm.Registers.L = tt.initialL
+			vm.Memory[tt.memoryLocation] = tt.initialMemoryValue
 
 			vm.dcr_M([]byte{0x00, 0x00})
 
-			if vm.memory[tt.memoryLocation] != tt.expectedMemoryValue {
-				t.Errorf("Expected memory value=0x%02X; got 0x%02X", tt.expectedMemoryValue, vm.memory[tt.memoryLocation])
+			if vm.Memory[tt.memoryLocation] != tt.expectedMemoryValue {
+				t.Errorf("Expected memory value=0x%02X; got 0x%02X", tt.expectedMemoryValue, vm.Memory[tt.memoryLocation])
 			}
 		})
 	}
@@ -182,16 +182,16 @@ func TestDadDE(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vm := NewCPU8080(&[]byte{}, nil)
-			vm.registers.H = tt.initialH
-			vm.registers.L = tt.initialL
-			vm.registers.D = tt.initialD
-			vm.registers.E = tt.initialE
+			vm.Registers.H = tt.initialH
+			vm.Registers.L = tt.initialL
+			vm.Registers.D = tt.initialD
+			vm.Registers.E = tt.initialE
 			vm.flags.C = true
 
 			vm.dad_D([]byte{0x00, 0x00})
 
-			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
-				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			if vm.Registers.H != tt.expectedH || vm.Registers.L != tt.expectedL {
+				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.Registers.H, vm.Registers.L)
 			}
 			if vm.flags.C != tt.expectedCarry {
 				t.Errorf("expected C flag %t, got %t", tt.expectedCarry, vm.flags.C)
@@ -220,13 +220,13 @@ func TestDcxH(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			vm := NewCPU8080(&[]byte{}, nil)
-			vm.registers.H = tt.initialH
-			vm.registers.L = tt.initialL
+			vm.Registers.H = tt.initialH
+			vm.Registers.L = tt.initialL
 
 			vm.dcx_H([]byte{0x00, 0x00})
 
-			if vm.registers.H != tt.expectedH || vm.registers.L != tt.expectedL {
-				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.registers.H, vm.registers.L)
+			if vm.Registers.H != tt.expectedH || vm.Registers.L != tt.expectedL {
+				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.Registers.H, vm.Registers.L)
 			}
 		})
 	}

@@ -20,13 +20,13 @@ func (vm *CPU8080) handleInterrupt(opcode byte) {
 
 	// Calculate the address from the opcode (RST n: n*8)
 	address := uint16((opcode - 0xC7) / 8 * 8)
-	vm.Logger.Debugf("INTE $%04X-->$%04X", vm.pc, address)
+	vm.Logger.Debugf("INTE $%04X-->$%04X", vm.PC, address)
 
 	// Push the current PC onto the stack. Assumes a function exists to handle pushing words onto the stack.
-	vm.push(byte(vm.pc&0xFF), byte(vm.pc>>8)&0xFF)
+	vm.push(byte(vm.PC&0xFF), byte(vm.PC>>8)&0xFF)
 
 	// Set the PC to the ISR address.
-	vm.pc = address
+	vm.PC = address
 }
 
 // EI: Enable interrupts.

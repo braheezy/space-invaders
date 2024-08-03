@@ -16,5 +16,6 @@ type HardwareIO interface {
 	Width() int
 	Height() int
 	Scale() int
+	HandleSystemCall(*CPU8080)
 	StartAddress() int
 }

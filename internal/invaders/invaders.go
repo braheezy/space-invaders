@@ -302,3 +302,6 @@ func (si *SpaceInvadersHardware) Scale() int {
 func (si *SpaceInvadersHardware) StartAddress() int {
 	return startAddress
 }
+
+func (si *SpaceInvadersHardware) HandleSystemCall(*emulator.CPU8080) {
+}

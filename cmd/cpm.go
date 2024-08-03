@@ -1,41 +1,43 @@
 package cmd
 
-// var cpmCmd = &cobra.Command{
-// 	Use:   "cpm <rom>",
-// 	Args:  cobra.ExactArgs(1),
-// 	Short: "Run CP/M",
-// 	Run: func(cmd *cobra.Command, args []string) {
-// 		logger := newDefaultLogger()
-// 		if debug {
-// 			logger.SetLevel(log.DebugLevel)
-// 		}
+import (
+	"github.com/braheezy/space-invaders/internal/cpm"
+	"github.com/braheezy/space-invaders/internal/emulator"
+	"github.com/charmbracelet/log"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/spf13/cobra"
+)
 
-// 		fileName := filepath.Base(args[0])
-// 		data, err := os.ReadFile(args[0])
-// 		if err != nil {
-// 			logger.Fatal(err)
-// 		}
+func init() {
+	rootCmd.AddCommand(cpmCmd)
+}
 
-// 		// Assuming NewCPMHardware() sets up the CP/M environment
-// 		vm := emulator.NewCPU8080(&data, startAddress, NewCPMHardware())
-// 		vm.StartInterruptRoutines()
-// 		vm.Logger = logger
-// 		vm.Options.UnlimitedTPS = true
+var cpmCmd = &cobra.Command{
+	Use:   "cpm",
+	Short: "Run CP/M test",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger := newDefaultLogger()
+		if debug {
+			logger.SetLevel(log.DebugLevel)
+		}
+		cpmHardware := cpm.NewCPMHardware()
 
-// 		ebiten.SetWindowTitle(fileName)
-// 		if vm.Options.UnlimitedTPS {
-// 			ebiten.SetTPS(ebiten.SyncWithFPS)
-// 		} else {
-// 			ebiten.SetTPS(60)
-// 		}
-// 		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
+		// Assuming NewCPMHardware() sets up the CP/M environment
+		vm := emulator.NewCPU8080(&cpmHardware.ROMData, cpmHardware)
+		vm.StartInterruptRoutines()
+		vm.Logger = logger
+		vm.Options.UnlimitedTPS = true
 
-// 		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
-// 			logger.Fatal(err)
-// 		}
-// 	},
-// }
+		ebiten.SetWindowTitle("cpm test")
+		if vm.Options.UnlimitedTPS {
+			ebiten.SetTPS(ebiten.SyncWithFPS)
+		} else {
+			ebiten.SetTPS(60)
+		}
+		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
 
-// func init() {
-// 	rootCmd.AddCommand(cpmCmd)
-// }
+		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
+			logger.Fatal(err)
+		}
+	},
+}

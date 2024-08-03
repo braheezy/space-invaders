@@ -2,39 +2,39 @@ package emulator
 
 func (vm *CPU8080) push(lower, upper byte) {
 	// Store value in stack, note: stack grows downwards
-	vm.memory[vm.sp-1] = upper
-	vm.memory[vm.sp-2] = lower
+	vm.Memory[vm.sp-1] = upper
+	vm.Memory[vm.sp-2] = lower
 	vm.sp -= 2
 }
 
 // PUSH D: Push register pair D onto stack.
 func (vm *CPU8080) push_DE(data []byte) {
 	vm.Logger.Debugf("[D5] PUSH\tDE")
-	vm.push(vm.registers.E, vm.registers.D)
+	vm.push(vm.Registers.E, vm.Registers.D)
 }
 
 // PUSH H: Push register pair H onto stack.
 func (vm *CPU8080) push_HL(data []byte) {
 	vm.Logger.Debugf("[E5] PUSH\tHL")
-	vm.push(vm.registers.L, vm.registers.H)
+	vm.push(vm.Registers.L, vm.Registers.H)
 }
 
 // PUSH B: Push register pair B onto stack.
 func (vm *CPU8080) push_BC(data []byte) {
 	vm.Logger.Debugf("[C5] PUSH\tBC")
-	vm.push(vm.registers.C, vm.registers.B)
+	vm.push(vm.Registers.C, vm.Registers.B)
 }
 
 // PUSH AF: Push accumulator and flags onto stack.
 func (vm *CPU8080) push_AF(data []byte) {
 	vm.Logger.Debugf("[F5] PUSH\tAF")
-	vm.push(vm.flags.toByte(), vm.registers.A)
+	vm.push(vm.flags.toByte(), vm.Registers.A)
 }
 
 // pop returns two bytes from the stack.
 func (vm *CPU8080) pop() (byte, byte) {
-	lower := vm.memory[vm.sp]
-	upper := vm.memory[vm.sp+1]
+	lower := vm.Memory[vm.sp]
+	upper := vm.Memory[vm.sp+1]
 	vm.sp += 2
 	return lower, upper
 }
@@ -42,25 +42,25 @@ func (vm *CPU8080) pop() (byte, byte) {
 // POP H: Pop register pair H from stack.
 func (vm *CPU8080) pop_HL(data []byte) {
 	vm.Logger.Debugf("[E1] POP \tHL")
-	vm.registers.L, vm.registers.H = vm.pop()
+	vm.Registers.L, vm.Registers.H = vm.pop()
 }
 
 // POP B: Pop register pair B from stack.
 func (vm *CPU8080) pop_BC(data []byte) {
 	vm.Logger.Debugf("[C1] POP \tBC")
-	vm.registers.C, vm.registers.B = vm.pop()
+	vm.Registers.C, vm.Registers.B = vm.pop()
 }
 
 // POP D: Pop register pair D from stack.
 func (vm *CPU8080) pop_DE(data []byte) {
 	vm.Logger.Debugf("[D1] POP \tDE")
-	vm.registers.E, vm.registers.D = vm.pop()
+	vm.Registers.E, vm.Registers.D = vm.pop()
 }
 
 // POP AF: Pop accumulator and flags from stack.
 func (vm *CPU8080) pop_AF(data []byte) {
 	vm.Logger.Debugf("[F1] POP \tAF")
 	var fl byte
-	fl, vm.registers.A = vm.pop()
+	fl, vm.Registers.A = vm.pop()
 	vm.flags = *fromByte(fl)
 }

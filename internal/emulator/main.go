@@ -10,14 +10,14 @@ import (
 )
 
 type CPU8080 struct {
-	// pc is the current program counter, the address of the next instruction to be executed
-	pc uint16
-	// programData is a pointer to bytes containing the device memory (64kb)
-	memory [64 * 1024]byte
+	// PC is the current program counter, the address of the next instruction to be executed
+	PC uint16
+	// programData is a pointer to bytes containing the device Memory (64kb)
+	Memory [64 * 1024]byte
 	// programSize is the number of bytes in the program
 	programSize int
-	// registers are the CPU's 8-bit registers
-	registers registers
+	// Registers are the CPU's 8-bit Registers
+	Registers Registers
 	// sp is the stack pointer, the index to memory
 	sp uint16
 	// flags indicate the results of arithmetic and logical operations
@@ -42,7 +42,7 @@ type CPU8080Options struct {
 	UnlimitedTPS bool
 }
 
-type registers struct {
+type Registers struct {
 	A, B, C, D, E, H, L byte
 }
 
@@ -152,12 +152,14 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		InterruptRequest:  make(chan byte, 1),
 		InterruptsEnabled: true,
 	}
+	start := io.StartAddress()
 	// Put the program into memory at the location it wants to be
-	copy(vm.memory[io.StartAddress():], *program)
-	vm.programSize = len(*program) + int(io.StartAddress())
+	copy(vm.Memory[start:], *program)
+	vm.programSize = len(*program) + start
+	vm.PC = uint16(start)
 
 	if vm.Hardware != nil {
-		vm.Hardware.Init(&vm.memory)
+		vm.Hardware.Init(&vm.Memory)
 	}
 
 	// Define all supported opcodes

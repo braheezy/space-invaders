@@ -35,20 +35,22 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 		case opcode := <-vm.InterruptRequest:
 			vm.handleInterrupt(opcode)
 		default:
-			if int(vm.pc) >= vm.programSize {
+			if int(vm.PC) >= vm.programSize {
 				break
 			}
-			currentCode := vm.memory[vm.pc : vm.pc+3]
+			currentCode := vm.Memory[vm.PC : vm.PC+3]
+
+			vm.Hardware.HandleSystemCall(vm)
 
 			op := currentCode[0]
-			vm.pc++
+			vm.PC++
 			vm.cycleCount += stateCounts[op]
 			vm.totalCycles += stateCounts[op]
 
 			if opcodeFunc, exists := vm.opcodeTable[op]; exists {
 				opcodeFunc(currentCode[1:])
 			} else {
-				vm.Logger.Fatal("unsupported", "address", fmt.Sprintf("%04X", vm.pc-1), "opcode", fmt.Sprintf("%02X", op), "totalCycles", vm.totalCycles)
+				vm.Logger.Fatal("unsupported", "address", fmt.Sprintf("%04X", vm.PC-1), "opcode", fmt.Sprintf("%02X", op), "totalCycles", vm.totalCycles)
 			}
 		}
 	}
@@ -75,10 +77,10 @@ func (vm *CPU8080) out(data []byte) {
 	address := data[0]
 	deviceName := vm.Hardware.OutDeviceName(address)
 	vm.Logger.Debugf("[D3] OUT \t(%s),A", deviceName)
-	vm.pc++
-	err := vm.Hardware.Out(address, vm.registers.A)
+	vm.PC++
+	err := vm.Hardware.Out(address, vm.Registers.A)
 	if err != nil {
-		vm.Logger.Fatal("OUT", "address", fmt.Sprintf("%04X", vm.pc-2), "error", err)
+		vm.Logger.Fatal("OUT", "address", fmt.Sprintf("%04X", vm.PC-2), "error", err)
 	}
 }
 
@@ -87,10 +89,10 @@ func (vm *CPU8080) in(data []byte) {
 	address := data[0]
 	deviceName := vm.Hardware.InDeviceName(address)
 	vm.Logger.Debugf("[D8] IN  \tA,(%s)", deviceName)
-	vm.pc++
+	vm.PC++
 	result, err := vm.Hardware.In(address)
 	if err != nil {
-		vm.Logger.Fatal("IN", "address", fmt.Sprintf("%04X", vm.pc-2), "error", err)
+		vm.Logger.Fatal("IN", "address", fmt.Sprintf("%04X", vm.PC-2), "error", err)
 	}
-	vm.registers.A = result
+	vm.Registers.A = result
 }
