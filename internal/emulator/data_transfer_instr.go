@@ -217,13 +217,13 @@ func (vm *CPU8080) move_AB(data []byte) {
 
 // MOV E,A: Move value from accumulator into register E.
 func (vm *CPU8080) move_EA(data []byte) {
-	vm.Logger.Debugf("[5F] LD  \tE,A")
+	vm.Logger.Debug("[5F] LD  \tE,A")
 	vm.registers.E = vm.registers.A
 }
 
 // MOV D,A: Move value from accumulator into register D.
 func (vm *CPU8080) move_DA(data []byte) {
-	vm.Logger.Debugf("[57] LD  \tD,A")
+	vm.Logger.Debug("[57] LD  \tD,A")
 	vm.registers.D = vm.registers.A
 }
 
@@ -231,6 +231,14 @@ func (vm *CPU8080) move_DA(data []byte) {
 func (vm *CPU8080) store_A(data []byte) {
 	address := toUint16(data[1], data[0])
 	vm.Logger.Debugf("[32] LD  \t$%04X,A", address)
+	vm.memory[address] = vm.registers.A
+	vm.pc += 2
+}
+
+// STAX B: Store accumulator in 16-bit immediate address.
+func (vm *CPU8080) stax_B(data []byte) {
+	address := toUint16(vm.registers.B, vm.registers.C)
+	vm.Logger.Debug("[32] LD  \t(BC),A")
 	vm.memory[address] = vm.registers.A
 	vm.pc += 2
 }

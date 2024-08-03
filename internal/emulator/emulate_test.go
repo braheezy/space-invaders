@@ -106,35 +106,36 @@ func TestDAD_DE(t *testing.T) {
 }
 
 // TestCMP tests the cmp function which compares an 8-bit immediate value with the accumulator.
-func TestCMP(t *testing.T) {
+func TestCMP_B(t *testing.T) {
 	// Initialize a CPU8080 instance with a dummy program and hardware IO
 	vm := NewCPU8080(&[]byte{}, nil)
 
 	// Test cases
 	tests := []struct {
-		name             string
-		initialA         byte // Initial accumulator value
-		data             byte // Immediate value to compare with
-		expectedZero     bool // Expected Zero flag
-		expectedSign     bool // Expected Sign flag
-		expectedCarry    bool // Expected Carry flag
-		expectedAuxCarry bool // Expected Auxiliary Carry flag
-		expectedParity   bool // Expected Parity flag
+		name               string
+		initialA           byte // Initial accumulator value
+		initialB           byte // Immediate value to compare with
+		initialC, initialZ bool
+		expectedZero       bool // Expected Zero flag
+		expectedSign       bool // Expected Sign flag
+		expectedCarry      bool // Expected Carry flag
+		expectedAuxCarry   bool // Expected Auxiliary Carry flag
+		expectedParity     bool // Expected Parity flag
 	}{
 		{
 			name:             "Accumulator greater",
 			initialA:         0x0F,
-			data:             0x07,
+			initialB:         0x07,
 			expectedZero:     false,
 			expectedSign:     false, // Result is positive
 			expectedCarry:    false, // No borrow
 			expectedAuxCarry: false, //  No aux borrow
-			expectedParity:   true,  // Even parity of result (0x08)
+			expectedParity:   false, // Odd parity of result (0x08)
 		},
 		{
 			name:             "Accumulator equal",
 			initialA:         0x12,
-			data:             0x12,
+			initialB:         0x12,
 			expectedZero:     true,
 			expectedSign:     false, // Zero result, sign flag is 0
 			expectedCarry:    false, // Equal, no borrow
@@ -142,14 +143,40 @@ func TestCMP(t *testing.T) {
 			expectedParity:   true,  // Even parity (result is 0)
 		},
 		{
-			name:             "Accumulator less",
-			initialA:         0x01,
-			data:             0x02,
+			name:             "docs 2",
+			initialA:         0x02,
+			initialB:         0x05,
 			expectedZero:     false,
 			expectedSign:     true,  // Negative result (considering 8-bit unsigned overflow)
 			expectedCarry:    true,  // Borrow occurs
 			expectedAuxCarry: true,  // Aux carry occurs if there's a borrow from bit 4 to bit 3
 			expectedParity:   false, // Odd parity of result (0xFF)
+			initialC:         false,
+			initialZ:         true,
+		},
+		{
+			name:             "docs 1",
+			initialA:         0x0A,
+			initialB:         0x05,
+			expectedZero:     false,
+			expectedSign:     false,
+			expectedCarry:    false,
+			expectedAuxCarry: false,
+			expectedParity:   true,
+			initialC:         true,
+			initialZ:         true,
+		},
+		{
+			name:             "docs 3",
+			initialA:         0xEB,
+			initialB:         0x05,
+			expectedZero:     false,
+			expectedSign:     true,
+			expectedCarry:    false,
+			expectedAuxCarry: false,
+			expectedParity:   false,
+			initialC:         true,
+			initialZ:         true,
 		},
 	}
 
@@ -157,25 +184,37 @@ func TestCMP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set the initial A register value
 			vm.registers.A = tt.initialA
+			vm.registers.B = tt.initialB
+			vm.flags.C = tt.initialC
+			vm.flags.Z = tt.initialZ
 
 			// Execute the cmp function
-			vm.cmp([]byte{tt.data})
+			vm.cmp_B(nil)
+
+			if vm.registers.A != tt.initialA {
+				t.Error("Expected unchanged vm.registers.A")
+			}
+
+			if vm.registers.B != tt.initialB {
+				t.Error("Expected unchanged vm.registers.B")
+			}
 
 			// Check flags
 			if vm.flags.Z != tt.expectedZero {
-				t.Errorf("Expected Zero flag %t, got %t", tt.expectedZero, vm.flags.Z)
+				t.Errorf("%s: Expected Zero flag %t, got %t", tt.name, tt.expectedZero, vm.flags.Z)
 			}
 			if vm.flags.S != tt.expectedSign {
-				t.Errorf("Expected Sign flag %t, got %t", tt.expectedSign, vm.flags.S)
+				t.Errorf("%s: Expected Sign flag %t, got %t", tt.name, tt.expectedSign, vm.flags.S)
 			}
 			if vm.flags.C != tt.expectedCarry {
-				t.Errorf("Expected Carry flag %t, got %t", tt.expectedCarry, vm.flags.C)
+				t.Errorf("%s: Expected Carry flag %t, got %t", tt.name, tt.expectedCarry, vm.flags.C)
 			}
 			if vm.flags.H != tt.expectedAuxCarry {
-				t.Errorf("Expected Aux Carry flag %t, got %t", tt.expectedAuxCarry, vm.flags.H)
+				t.Errorf("%s: Expected Aux Carry flag %t, got %t", tt.name, tt.expectedAuxCarry, vm.flags.H)
 			}
-			// Assuming setP method correctly sets the Parity flag based on the result's parity
-			// Parity flag check might be omitted if its setting relies on complex logic within setP
+			if vm.flags.P != tt.expectedParity {
+				t.Errorf("%s: Expected Aux Parity flag %t, got %t", tt.name, tt.expectedParity, vm.flags.P)
+			}
 		})
 	}
 }

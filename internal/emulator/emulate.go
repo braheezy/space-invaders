@@ -32,17 +32,13 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 
 	for vm.cycleCount < cycleCount {
 		select {
-		case opcode := <-vm.interruptRequest:
+		case opcode := <-vm.InterruptRequest:
 			vm.handleInterrupt(opcode)
 		default:
 			if int(vm.pc) >= vm.programSize {
 				break
 			}
 			currentCode := vm.memory[vm.pc : vm.pc+3]
-
-			if vm.pc == 0x18DC {
-				fmt.Printf("%v\n", vm.memory[0x2010:0x2020])
-			}
 
 			op := currentCode[0]
 			vm.pc++
@@ -71,7 +67,7 @@ func toUint16(high, low byte) uint16 {
 
 // NOP: No operation.
 func (vm *CPU8080) nop(data []byte) {
-	vm.Logger.Debugf("[00] NOP")
+	// vm.Logger.Debugf("[00] NOP")
 }
 
 // OUT D8: Output accumulator to device at 8-bit immediate address.

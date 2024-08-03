@@ -1,49 +1,35 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/braheezy/space-invaders/internal/emulator"
+	"github.com/braheezy/space-invaders/internal/invaders"
 	"github.com/charmbracelet/log"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/spf13/cobra"
 )
 
-var debug bool
-
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Show debug messages")
+	rootCmd.AddCommand(invadersCmd)
 }
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
-}
-
-var rootCmd = &cobra.Command{
-	Use:  "8080 <rom>",
-	Args: cobra.ExactArgs(1),
+var invadersCmd = &cobra.Command{
+	Use:   "invaders",
+	Short: "Run Space Invaders",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := newDefaultLogger()
 		if debug {
 			logger.SetLevel(log.DebugLevel)
 		}
 
-		fileName := filepath.Base(args[0])
-		data, err := os.ReadFile(args[0])
-		if err != nil {
-			logger.Fatal(err)
-		}
+		invadersHardware := invaders.NewSpaceInvadersHardware()
 
-		vm := emulator.NewCPU8080(&data, emulator.NewSpaceInvadersHardware())
+		vm := emulator.NewCPU8080(&invadersHardware.ROMData, invadersHardware)
 		vm.StartInterruptRoutines()
 		vm.Logger = logger
 		// TODO: Don't hardcode
 		vm.Options.UnlimitedTPS = true
 
-		ebiten.SetWindowTitle(fileName)
+		ebiten.SetWindowTitle("space invaders")
 		if vm.Options.UnlimitedTPS {
 			ebiten.SetTPS(ebiten.SyncWithFPS)
 

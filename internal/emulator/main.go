@@ -35,12 +35,11 @@ type CPU8080 struct {
 	Hardware          HardwareIO
 	mu                sync.Mutex // Mutex for thread-safe access to the CPU state
 	InterruptsEnabled bool
-	interruptRequest  chan byte
+	InterruptRequest  chan byte
 }
 
 type CPU8080Options struct {
-	ProgramStartAddress uint16
-	UnlimitedTPS        bool
+	UnlimitedTPS bool
 }
 
 type registers struct {
@@ -150,12 +149,12 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	vm := &CPU8080{
 		Logger:            log.New(os.Stdout),
 		Hardware:          io,
-		interruptRequest:  make(chan byte, 1),
+		InterruptRequest:  make(chan byte, 1),
 		InterruptsEnabled: true,
 	}
 	// Put the program into memory at the location it wants to be
-	copy(vm.memory[vm.Options.ProgramStartAddress:], *program)
-	vm.programSize = len(*program) + int(vm.Options.ProgramStartAddress)
+	copy(vm.memory[io.StartAddress():], *program)
+	vm.programSize = len(*program) + int(io.StartAddress())
 
 	if vm.Hardware != nil {
 		vm.Hardware.Init(&vm.memory)
@@ -165,6 +164,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 	vm.opcodeTable = map[byte]opcodeExec{
 		0x00: vm.nop,
 		0x01: vm.load_BC,
+		0x02: vm.stax_B,
 		0x03: vm.inx_B,
 		0x04: vm.inr_B,
 		0x05: vm.dcr_B,
@@ -269,6 +269,7 @@ func NewCPU8080(program *[]byte, io HardwareIO) *CPU8080 {
 		0xF3: vm.di,
 		0xFA: vm.jump_m,
 		0xFB: vm.ei,
+		0xF4: vm.call_P,
 		0xF5: vm.push_AF,
 		0xF6: vm.ori,
 		0xFE: vm.cmp,

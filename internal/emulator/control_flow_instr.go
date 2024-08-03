@@ -1,22 +1,25 @@
 package emulator
 
+// call helper
+func (vm *CPU8080) _call(jumpAddress uint16) {
+	returnAddress := vm.pc + 2
+	vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
+	vm.pc = jumpAddress
+}
+
 // CALL addr: Call subroutine at address
 func (vm *CPU8080) call(data []byte) {
 	jumpAddress := toUint16(data[1], data[0])
-	returnAddress := vm.pc + 2
 	vm.Logger.Debugf("[CD] CALL\t$%04X", jumpAddress)
-	vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
-	vm.pc = jumpAddress
+	vm._call(jumpAddress)
 }
 
 // CNZ addr: Call subroutine at address if zero flag not set
 func (vm *CPU8080) call_NZ(data []byte) {
 	if !vm.flags.Z {
 		jumpAddress := toUint16(data[1], data[0])
-		returnAddress := vm.pc + 2
 		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X", jumpAddress)
-		vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
-		vm.pc = jumpAddress
+		vm._call(jumpAddress)
 	} else {
 		vm.Logger.Debugf("[C4] CALL\tNZ,$%04X (not taken)", vm.pc+2)
 		vm.pc += 2
@@ -27,10 +30,8 @@ func (vm *CPU8080) call_NZ(data []byte) {
 func (vm *CPU8080) call_Z(data []byte) {
 	if vm.flags.Z {
 		jumpAddress := toUint16(data[1], data[0])
-		returnAddress := vm.pc + 2
 		vm.Logger.Debugf("[CC] CALL\tZ,$%04X", jumpAddress)
-		vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
-		vm.pc = jumpAddress
+		vm._call(jumpAddress)
 	} else {
 		vm.Logger.Debugf("[CC] CALL\tZ,$%04X (not taken)", vm.pc+2)
 		vm.pc += 2
@@ -41,21 +42,31 @@ func (vm *CPU8080) call_Z(data []byte) {
 func (vm *CPU8080) call_NC(data []byte) {
 	if !vm.flags.C {
 		jumpAddress := toUint16(data[1], data[0])
-		returnAddress := vm.pc + 2
 		vm.Logger.Debugf("[D4] CALL\tNC,$%04X", jumpAddress)
-		vm.push(byte(returnAddress&0xFF), byte(returnAddress>>8))
-		vm.pc = jumpAddress
+		vm._call(jumpAddress)
 	} else {
 		vm.Logger.Debugf("[D4] CALL\tNC,$%04X (not taken)", vm.pc+2)
 		vm.pc += 2
 	}
 }
 
+// CP addr: Call subroutine at address if sign flag is not set (plus)
+func (vm *CPU8080) call_P(data []byte) {
+	if !vm.flags.S {
+		jumpAddress := toUint16(data[1], data[0])
+		vm.Logger.Debugf("[F4] CALL\tP,$%04X", jumpAddress)
+		vm._call(jumpAddress)
+	} else {
+		vm.Logger.Debugf("[F4] CALL\tP,$%04X (not taken)", vm.pc+2)
+		vm.pc += 2
+	}
+}
+
 // JMP: Jump to address.
 func (vm *CPU8080) jump(data []byte) {
-	operand := toUint16(data[1], data[0])
-	vm.Logger.Debugf("[C3] JMP \t$%04X", operand)
-	vm.pc = operand
+	address := toUint16(data[1], data[0])
+	vm.Logger.Debugf("[C3] JMP \t$%04X", address)
+	vm.pc = address
 }
 
 // JNZ addr: Jump if not zero.

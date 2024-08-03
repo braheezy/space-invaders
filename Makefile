@@ -91,9 +91,11 @@ test:
 	@go test $(TEST_FILES)
 	@echo -e "$(GREEN)✅ Test is complete!$(END)"
 
-TEST_FILE := invaders
 run: $(BIN)
-	@exec $? $(TEST_FILE)
+	@exec $? invaders
+
+cpm: $(BIN)
+	@exec $? cpm
 
 debug:
 	@go run main.go -d invaders

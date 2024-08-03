@@ -2,8 +2,6 @@ package emulator
 
 import "testing"
 
-var noOpLogger = func(format string, args ...interface{}) {}
-
 func TestXRA(t *testing.T) {
 	tests := []struct {
 		name      string

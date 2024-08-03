@@ -123,9 +123,9 @@ func (vm *CPU8080) compare(data byte) {
 	// Handle condition bits
 	vm.flags.setZ(result)
 	vm.flags.setS(result)
+	vm.flags.setP(result)
 	vm.flags.C = carrySub(vm.registers.A, data)
 	vm.flags.H = auxCarrySub(vm.registers.A, data)
-	vm.flags.setP(result)
 }
 
 // CPI D8: Compare 8-bit immediate value with accumulator.
