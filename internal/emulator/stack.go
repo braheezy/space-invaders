@@ -64,3 +64,24 @@ func (vm *CPU8080) pop_AF(data []byte) {
 	fl, vm.Registers.A = vm.pop()
 	vm.flags = *fromByte(fl)
 }
+
+// XTHL: Exchange top of stack with address referenced by register pair HL.
+func (vm *CPU8080) xthl(data []byte) {
+	vm.Logger.Debugf("[E3] EX  \t(SP),HL")
+	stackL := vm.Memory[vm.sp]
+	stackH := vm.Memory[vm.sp+1]
+
+	// Exchange the values
+	vm.Memory[vm.sp] = vm.Registers.L
+	vm.Memory[vm.sp+1] = vm.Registers.H
+
+	// Update the HL register pair
+	vm.Registers.L = stackL
+	vm.Registers.H = stackH
+}
+
+// SPHL: Load stack pointer from register pair HL.
+func (vm *CPU8080) sphl(data []byte) {
+	vm.Logger.Debugf("[F9] SPHL")
+	vm.sp = (uint16(vm.Registers.H) << 8) | uint16(vm.Registers.L)
+}

@@ -374,3 +374,46 @@ func TestRAR(t *testing.T) {
 	}
 
 }
+
+func TestXCHG(t *testing.T) {
+
+	vm := NewCPU8080(&[]byte{}, nil)
+	vm.Registers.D = 0x33
+	vm.Registers.E = 0x55
+	vm.Registers.H = 0x00
+	vm.Registers.L = 0xFF
+
+	vm.xchg(nil)
+
+	if vm.Registers.D != 0x00 {
+		t.Errorf("Expected D to be 0x00, got %02X", vm.Registers.D)
+	}
+	// E should be 0xFF
+	if vm.Registers.E != 0xFF {
+		t.Errorf("Expected E to be 0xFF, got %02X", vm.Registers.E)
+	}
+	// H should be 0x33
+	if vm.Registers.H != 0x33 {
+		t.Errorf("Expected H to be 0x33, got %02X", vm.Registers.H)
+	}
+	// L should be 0x55
+	if vm.Registers.L != 0x55 {
+		t.Errorf("Expected L to be 0x55, got %02X", vm.Registers.L)
+	}
+
+}
+
+func TestRAL(t *testing.T) {
+
+	vm := NewCPU8080(&[]byte{}, nil)
+	vm.Registers.A = 0xB5
+
+	vm.ral(nil)
+
+	if vm.Registers.A != 0x6A {
+		t.Errorf("Expected accumulator to be 0x6A, got %02X", vm.Registers.A)
+	}
+	if !vm.flags.C {
+		t.Error("Expected carry flag to be set")
+	}
+}

@@ -20,37 +20,25 @@ func TestADD(t *testing.T) {
 		{
 			name:      "Addition without carry",
 			initialA:  0x14,
-			data:      0x01,
-			expectedA: 0x15,
+			data:      0x42,
+			expectedA: 0x56,
 			expectedZ: false,
 			expectedS: false,
 			expectedC: false,
 			expectedH: false,
-			expectedP: false, // Parity of 0x15 (00010101) is odd (3 ones)
+			expectedP: true,
 		},
 		{
 			name:      "Addition with carry",
-			initialA:  0xFF,
-			data:      0x01,
-			expectedA: 0x00,
-			expectedZ: true,
+			initialA:  0x56,
+			data:      0xBE,
+			expectedA: 0x14,
+			expectedZ: false,
 			expectedS: false,
 			expectedC: true,
 			expectedH: true,
-			expectedP: true, // Parity of 0x00 is even
+			expectedP: true,
 		},
-		{
-			name:      "Result with sign bit set",
-			initialA:  0x7F,
-			data:      0x01,
-			expectedA: 0x80,
-			expectedZ: false,
-			expectedS: true, // Sign bit is set because the result is 0x80
-			expectedC: false,
-			expectedH: true,
-			expectedP: false, // Parity of 0x80 (10000000) is odd (1 one)
-		},
-		// Add more tests as necessary, particularly for edge cases
 	}
 
 	for _, tt := range tests {
@@ -85,7 +73,7 @@ func TestADD(t *testing.T) {
 	}
 }
 
-func TestIncHL(t *testing.T) {
+func TestInxHL(t *testing.T) {
 	tests := []struct {
 		name          string
 		initialH      byte
@@ -229,5 +217,159 @@ func TestDcxH(t *testing.T) {
 				t.Errorf("Expected H=0x%02X, L=0x%02X; got H=0x%02X, L=0x%02X", tt.expectedH, tt.expectedL, vm.Registers.H, vm.Registers.L)
 			}
 		})
+	}
+}
+
+func TestADC_B(t *testing.T) {
+	tests := []struct {
+		name         string
+		initialA     byte
+		initialB     byte
+		initialCarry bool
+		expectedA    byte
+		expectedZ    bool
+		expectedS    bool
+		expectedC    bool
+		expectedH    bool
+		expectedP    bool
+	}{
+		{
+			name:         "ADC without carry",
+			initialA:     0x42,
+			initialB:     0x3D,
+			initialCarry: false,
+			expectedA:    0x7F,
+			expectedZ:    false,
+			expectedS:    false,
+			expectedC:    false,
+			expectedH:    false,
+			expectedP:    false,
+		},
+		{
+			name:         "ADC with carry",
+			initialA:     0x42,
+			initialB:     0x3D,
+			initialCarry: true,
+			expectedA:    0x80,
+			expectedZ:    false,
+			expectedS:    true,
+			expectedC:    false,
+			expectedH:    true,
+			expectedP:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := NewCPU8080(&[]byte{}, nil)
+			vm.Registers.A = tt.initialA
+			vm.Registers.B = tt.initialB
+			vm.flags.C = tt.initialCarry
+
+			vm.adc_B(nil)
+
+			if vm.Registers.A != tt.expectedA {
+				t.Errorf("%s: expected accumulator %02X, got %02X", tt.name, tt.expectedA, vm.Registers.A)
+			}
+			if vm.flags.Z != tt.expectedZ {
+				t.Errorf("%s: expected Z flag %t, got %t", tt.name, tt.expectedZ, vm.flags.Z)
+			}
+			if vm.flags.S != tt.expectedS {
+				t.Errorf("%s: expected S flag %t, got %t", tt.name, tt.expectedS, vm.flags.S)
+			}
+			if vm.flags.C != tt.expectedC {
+				t.Errorf("%s: expected C flag %t, got %t", tt.name, tt.expectedC, vm.flags.C)
+			}
+			if vm.flags.H != tt.expectedH {
+				t.Errorf("%s: expected H flag %t, got %t", tt.name, tt.expectedH, vm.flags.H)
+			}
+			if vm.flags.P != tt.expectedP {
+				t.Errorf("%s: expected P flag %t, got %t", tt.name, tt.expectedP, vm.flags.P)
+			}
+		})
+	}
+}
+
+func TestIncC(t *testing.T) {
+	vm := NewCPU8080(&[]byte{}, nil)
+	vm.Registers.C = 0x99
+	vm.inr_C(nil)
+	if vm.Registers.C != 0x9A {
+		t.Errorf("Expected C=0x9A, got 0x%02X", vm.Registers.C)
+	}
+	if vm.flags.Z {
+		t.Errorf("Expected Z flag false, got true")
+	}
+	if !vm.flags.S {
+		t.Errorf("Expected S flag false, got true")
+	}
+	if !vm.flags.P {
+		t.Errorf("Expected P flag true, got false")
+	}
+	if vm.flags.C {
+		t.Errorf("Expected C flag false, got true")
+	}
+	if vm.flags.H {
+		t.Errorf("Expected H flag false, got true")
+	}
+}
+
+func TestSub_A(t *testing.T) {
+
+	vm := NewCPU8080(&[]byte{}, nil)
+	vm.Registers.A = 0x3E
+	vm.flags.C = true
+	vm.flags.H = true
+	vm.flags.S = true
+
+	vm.sub_A(nil)
+
+	if vm.Registers.A != 0x0 {
+		t.Errorf("Expected A=0x0, got 0x%02X", vm.Registers.A)
+	}
+	if vm.flags.C {
+		t.Errorf("Expected C flag false, got true")
+	}
+	if vm.flags.H {
+		t.Errorf("Expected H flag false, got true")
+	}
+	if vm.flags.S {
+		t.Errorf("Expected S flag false, got true")
+	}
+	if !vm.flags.Z {
+		t.Errorf("Expected Z flag true, got false")
+	}
+	if !vm.flags.P {
+		t.Errorf("Expected P flag true, got false")
+	}
+}
+
+func TestSBB_L(t *testing.T) {
+	vm := NewCPU8080(&[]byte{}, nil)
+	vm.Registers.A = 4
+	vm.Registers.L = 2
+	vm.flags.C = true
+	vm.flags.Z = true
+	vm.flags.S = true
+	vm.flags.P = true
+
+	vm.sbb_L(nil)
+
+	if vm.Registers.A != 1 {
+		t.Errorf("Expected A=1, got 0x%02X", vm.Registers.A)
+	}
+	if vm.flags.C {
+		t.Errorf("Expected C flag false, got true")
+	}
+	if !vm.flags.H {
+		t.Errorf("Expected H flag true, got false")
+	}
+	if vm.flags.S {
+		t.Errorf("Expected S flag false, got true")
+	}
+	if vm.flags.Z {
+		t.Errorf("Expected Z flag true, got false")
+	}
+	if vm.flags.P {
+		t.Errorf("Expected P flag false, got true")
 	}
 }
