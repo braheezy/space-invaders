@@ -25,6 +25,8 @@ type SpaceInvadersHardware struct {
 	shiftAmount    byte
 	shiftRegister  uint16
 	ROMData        []byte
+	lastSound1     byte
+	lastSound2     byte
 }
 
 const (
@@ -139,9 +141,9 @@ func (si *SpaceInvadersHardware) Out(addr byte, value byte) error {
 		// Write to the shift register
 		si.shiftRegister = (uint16(value) << 8) | (si.shiftRegister >> 8)
 	case 0x03:
-		si.handleSoundBits(value, si.soundMapPort3)
+		si.handleSoundBits(value, si.soundMapPort3, &si.lastSound1)
 	case 0x05:
-		si.handleSoundBits(value, si.soundMapPort5)
+		si.handleSoundBits(value, si.soundMapPort5, &si.lastSound2)
 	case 0x06:
 		si.watchdogTimer = value
 	default:
@@ -212,20 +214,19 @@ func NewSpaceInvadersHardware() *SpaceInvadersHardware {
 	}
 
 	soundMapPort3 := map[byte]string{
-		0x01: "assets/ufo_repeat_low.qoa",
-		0x02: "assets/shoot.wav",
-		0x04: "assets/player_die.wav",
-		0x08: "assets/invader_die.wav",
-		0x10: "assets/extra_play.qoa",
-		0x20: "assets/SX5.raw", // AMP enable
+		0: "assets/sounds/ufo_repeat_low.qoa",
+		1: "assets/sounds/shoot.qoa",
+		2: "assets/sounds/player_die.qoa",
+		3: "assets/sounds/invader_die.qoa",
+		4: "assets/sounds/extra_play.qoa",
 	}
 
 	soundMapPort5 := map[byte]string{
-		0x01: "assets/fleet_move_1.raw",
-		0x02: "assets/fleet_move_2.raw",
-		0x04: "assets/fleet_move_3.raw",
-		0x08: "assets/fleet_move_4.raw",
-		0x10: "assets/ufo_hit.qoa",
+		0: "assets/sounds/fleet_move_1.qoa",
+		1: "assets/sounds/fleet_move_2.qoa",
+		2: "assets/sounds/fleet_move_3.qoa",
+		3: "assets/sounds/fleet_move_4.qoa",
+		4: "assets/sounds/ufo_hit.qoa",
 	}
 
 	romData, _ := romFile.ReadFile("assets/invaders.rom")
@@ -280,14 +281,16 @@ func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 	screen.DrawImage(img, op)
 }
 
-func (si *SpaceInvadersHardware) handleSoundBits(value byte, soundMap map[byte]string) {
+func (si *SpaceInvadersHardware) handleSoundBits(value byte, soundMap map[byte]string, lastValue *byte) {
 	for bit, soundFile := range soundMap {
-		if value&bit != 0 {
+		bitMask := 1 << bit
+		currentBitSet := value & byte(bitMask)
+		lastBitSet := *lastValue & byte(bitMask)
+		if currentBitSet != 0 && lastBitSet == 0 {
 			si.soundManager.Play(soundFile)
-		} else {
-			si.soundManager.Pause(soundFile)
 		}
 	}
+	*lastValue = value
 }
 
 func (si *SpaceInvadersHardware) Width() int {
