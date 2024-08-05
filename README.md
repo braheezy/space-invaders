@@ -6,7 +6,7 @@ An emulation of [Space Invaders (1978)](https://www.wikiwand.com/en/Space_Invade
 This project contains an 8080 emulator and the necessary fake hardware bits to run the original Space Invaders arcade ROM.
 
 ## Installation
-Get a pre-built binary from the on the [Releases](https://github.com/braheezy/space-invaders/releases) page.
+Get a pre-built binary from the [Releases](https://github.com/braheezy/space-invaders/releases) page.
 
 Or, install with Go:
 
