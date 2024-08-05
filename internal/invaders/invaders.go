@@ -135,11 +135,11 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 			result |= 0x10
 		}
 		// Player 1 left
-		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 			result |= 0x20
 		}
 		// Player 1 right
-		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
 			result |= 0x40
 		}
 	case 0x02:

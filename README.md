@@ -3,6 +3,14 @@ An emulation of [Space Invaders (1978)](https://www.wikiwand.com/en/Space_Invade
 
 ![demo](./demo.webp)
 
+| Action | Key |
+| --- | --- |
+| Insert credit | `c` |
+| 1 player start | `1` |
+| 2 player start | `2` |
+| Shoot | `Spacebar` |
+| Move | Arrow keys or WASD
+
 ## Installation
 Get a pre-built binary from the on the [Releases](https://github.com/braheezy/space-invaders/releases) page.
 
