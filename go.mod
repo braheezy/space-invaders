@@ -1,8 +1,6 @@
 module github.com/braheezy/space-invaders
 
-go 1.21.9
-
-toolchain go1.22.5
+go 1.22.5
 
 require (
 	github.com/braheezy/qoa v1.0.1

@@ -1,9 +1,13 @@
+// package cpm provides a dumb-down CP/M hardware environment to execute the TST8080 rom.
+// This ROM is an excellent test rom that examines many 8080 codes for correctness.
+
 package cpm
 
 import (
 	"embed"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/braheezy/space-invaders/internal/emulator"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -13,14 +17,14 @@ import (
 var romFile embed.FS
 
 type CPMHardware struct {
-	ROMData []byte
+	rom []byte
 }
 
 func NewCPMHardware() *CPMHardware {
 	romData, _ := romFile.ReadFile("assets/TST8080.COM")
 
 	return &CPMHardware{
-		ROMData: romData,
+		rom: romData,
 	}
 }
 
@@ -32,8 +36,10 @@ func (cpm *CPMHardware) HandleSystemCall(vm *emulator.CPU8080) {
 	if vm.PC == 0x0005 {
 		switch vm.Registers.C {
 		case 0x02:
+			// print a single character
 			fmt.Printf("%s", string(vm.Registers.E))
 		case 0x09:
+			// print a string
 			start := (uint16(vm.Registers.D) << 8) | uint16(vm.Registers.E)
 			end := start
 			for {
@@ -52,7 +58,6 @@ func (cpm *CPMHardware) HandleSystemCall(vm *emulator.CPU8080) {
 }
 
 func (cpm *CPMHardware) Out(addr byte, value byte) error {
-
 	return nil
 }
 
@@ -64,7 +69,7 @@ func (cpm *CPMHardware) OutDeviceName(port byte) string {
 	return ""
 }
 
-func (cpm *CPMHardware) InterruptConditions() []emulator.InterruptCondition {
+func (cpm *CPMHardware) InterruptConditions() []emulator.Interrupt {
 	return nil
 }
 
@@ -89,4 +94,10 @@ func (cpm *CPMHardware) Scale() int {
 }
 func (cpm *CPMHardware) StartAddress() int {
 	return 0x100
+}
+func (cpm *CPMHardware) ROM() []byte {
+	return cpm.rom
+}
+func (cpm *CPMHardware) FrameDuration() time.Duration {
+	return 17 * time.Millisecond
 }

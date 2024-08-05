@@ -15,18 +15,23 @@ import (
 	"github.com/go-audio/wav"
 )
 
+// Sound Manager is a helper to provide Hardware with audio players.
 type SoundManager struct {
-	ctx     *oto.Context
+	// ctx is the singleton oto context
+	ctx *oto.Context
+	// players is a collection of players, one for each sound file
 	players map[string]*oto.Player
 }
 
+// NewSoundManager creates a new SoundManager.
+// An audio context is created and files are loaded into players.
 func NewSoundManager(sampleRate int, channelCount int, soundFiles embed.FS) (*SoundManager, error) {
 	ctx, ready, err := oto.NewContext(
 		&oto.NewContextOptions{
 			// Typically 44100 or 48000
-			SampleRate: 44100,
+			SampleRate: sampleRate,
 			// only 1 or 2 are supported by oto
-			ChannelCount: 1,
+			ChannelCount: channelCount,
 			Format:       oto.FormatSignedInt16LE,
 		})
 	if err != nil {
@@ -41,6 +46,7 @@ func NewSoundManager(sampleRate int, channelCount int, soundFiles embed.FS) (*So
 	sm.players = make(map[string]*oto.Player)
 	sm.ctx = ctx
 
+	// Find all files, open them, decode them, and load them into a player.
 	err = fs.WalkDir(soundFiles, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -74,10 +80,12 @@ func NewSoundManager(sampleRate int, channelCount int, soundFiles embed.FS) (*So
 	return sm, nil
 }
 
+// NewSoundManagerWithDefaults creates a new SoundManager with default values.
 func NewSoundManagerWithDefaults(soundFiles embed.FS) (*SoundManager, error) {
 	return NewSoundManager(44100, 2, soundFiles)
 }
 
+// Plays the sound at the given path from the beginning.
 func (sm *SoundManager) Play(filePath string) {
 	if player, exists := sm.players[filePath]; exists {
 		player.Seek(0, io.SeekStart)
@@ -85,12 +93,14 @@ func (sm *SoundManager) Play(filePath string) {
 	}
 }
 
+// Pause stop the sound at the given path, if it's playing.
 func (sm *SoundManager) Pause(filePath string) {
 	if player, exists := sm.players[filePath]; exists && player.IsPlaying() {
 		player.Pause()
 	}
 }
 
+// setupWavPlayer decodes WAV data and creates a new player from it.
 func setupWavPlayer(data []byte, ctx *oto.Context) (*oto.Player, error) {
 	wavReader := bytes.NewReader(data)
 	wavDecoder := wav.NewDecoder(wavReader)
@@ -112,6 +122,7 @@ func setupWavPlayer(data []byte, ctx *oto.Context) (*oto.Player, error) {
 	return ctx.NewPlayer(bytes.NewReader(byteData)), nil
 }
 
+// setupWavPlayer decodes QOA data and creates a new player from it.
 func setupQoaPlayer(data []byte, ctx *oto.Context) (*oto.Player, error) {
 	qoaMetadata, qoaAudioData, err := qoa.Decode(data)
 	if err != nil {

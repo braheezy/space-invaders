@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This script ensures all the sound files used in this project are the same
+# bit depth and sample rate, and then converts them to QOA format.
+
 # Ensure sox and goqoa are installed and available in the PATH
 if ! command -v sox &> /dev/null; then
     echo "sox could not be found, please install it."

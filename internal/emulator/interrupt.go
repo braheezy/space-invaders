@@ -1,22 +1,30 @@
 package emulator
 
-type InterruptCondition struct {
-	Cycle  int
+// Interrupt defines an interrupt for hardware.
+type Interrupt struct {
+	// Cycle is the number of cycles that should execute in the current frame before the interrupt triggers.
+	Cycle int
+	// Action is a function called when the interrupt triggers.
 	Action func(*CPU8080)
-	Name   string
+	// Name is the name of the interrupt.
+	Name string
 }
 
+// handleInterrupt performs actions when an interrupt request is received.
+// The current program counter is saved to the stack and program execution changes to the
+// interrupt routine address.
 func (vm *CPU8080) handleInterrupt(opcode byte) {
+	// Prevent other interrupts from editing CPU state at the same time.
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
 
 	// Check if interrupts are enabled. If not, simply return.
-	if !vm.InterruptsEnabled {
+	if !vm.interruptsEnabled {
 		return
 	}
 
 	// Disable further interrupts to prevent re-entry
-	vm.InterruptsEnabled = false
+	vm.interruptsEnabled = false
 
 	// Calculate the address from the opcode (RST n: n*8)
 	address := uint16((opcode - 0xC7) / 8 * 8)
@@ -27,16 +35,4 @@ func (vm *CPU8080) handleInterrupt(opcode byte) {
 
 	// Set the PC to the ISR address.
 	vm.PC = address
-}
-
-// EI: Enable interrupts.
-func (vm *CPU8080) ei(data []byte) {
-	vm.Logger.Debugf("[FB] EI")
-	vm.InterruptsEnabled = true
-}
-
-// DI: Disable interrupts.
-func (vm *CPU8080) di(data []byte) {
-	vm.Logger.Debugf("[F3] DI")
-	vm.InterruptsEnabled = false
 }

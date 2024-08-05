@@ -23,7 +23,7 @@ var cpmCmd = &cobra.Command{
 		cpmHardware := cpm.NewCPMHardware()
 
 		// Assuming NewCPMHardware() sets up the CP/M environment
-		vm := emulator.NewCPU8080(&cpmHardware.ROMData, cpmHardware)
+		vm := emulator.NewEmulator(cpmHardware)
 		vm.StartInterruptRoutines()
 		vm.Logger = logger
 		vm.Options.UnlimitedTPS = true

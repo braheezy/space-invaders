@@ -1,4 +1,4 @@
-PACKAGE := 8080
+PACKAGE := space-invaders
 
 # Go defintions
 GOCMD ?= go
@@ -92,13 +92,13 @@ test:
 	@echo -e "$(GREEN)✅ Test is complete!$(END)"
 
 run: $(BIN)
-	@exec $? invaders
+	@exec $?
 
 cpm: $(BIN)
 	@exec $? cpm
 
 debug:
-	@go run main.go -d invaders
+	@go run main.go -d
 
 install: $(BIN)
 	@echo -e "$(YELLOW)🚀 Installing $(BIN) to $(GOPATH)/bin...$(END)"

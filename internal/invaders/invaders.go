@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"image/color"
+	"time"
 
 	"github.com/braheezy/space-invaders/internal/emulator"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,18 +16,50 @@ var soundFiles embed.FS
 //go:embed assets/invaders.rom
 var romFile embed.FS
 
+// SpaceInvadersHardware represents the hardware-specific implementation for the Space Invaders game.
 type SpaceInvadersHardware struct {
-	watchdogTimer  byte
+	// watchdogTimer is used to simulate the watchdog timer functionality, which resets the game
+	// if the CPU gets stuck in an infinite loop or takes too long to complete an operation.
+	watchdogTimer byte
+
+	// cyclesPerFrame defines the number of CPU cycles that should be executed per frame.
+	// This value helps in synchronizing the CPU execution with the display refresh rate.
 	cyclesPerFrame int
-	videoRAM       []byte
-	soundManager   *emulator.SoundManager
-	soundMapPort3  map[byte]string
-	soundMapPort5  map[byte]string
-	shiftAmount    byte
-	shiftRegister  uint16
-	ROMData        []byte
-	lastSound1     byte
-	lastSound2     byte
+
+	// videoRAM holds the video memory where the graphical data for the display is stored.
+	// This memory is updated by the CPU to reflect changes in the game graphics.
+	videoRAM []byte
+
+	// soundManager manages the playback of sound effects for the game.
+	soundManager *emulator.SoundManager
+
+	// soundMapPort3 maps the bits in port 3 to their corresponding sound file names.
+	// This mapping is used to determine which sound to play when a bit in port 3 is set.
+	soundMapPort3 map[byte]string
+
+	// soundMapPort5 maps the bits in port 5 to their corresponding sound file names.
+	// This mapping is used to determine which sound to play when a bit in port 5 is set.
+	soundMapPort5 map[byte]string
+
+	// shiftAmount specifies the number of positions to shift the data in the shift register.
+	// This value is set by writing to port 2.
+	shiftAmount byte
+
+	// shiftRegister holds the 16-bit shift register value.
+	// This register is used to shift data for certain operations, as specified by the hardware.
+	shiftRegister uint16
+
+	// rom contains the read-only memory (ROM) data for the Space Invaders game.
+	// This data includes the game code and other static information needed by the emulator.
+	rom []byte
+
+	// lastSound1 holds the previous state of the sound control bits for port 3.
+	// This value is used to detect changes in the sound control bits and play the corresponding sounds.
+	lastSound1 byte
+
+	// lastSound2 holds the previous state of the sound control bits for port 5.
+	// This value is used to detect changes in the sound control bits and play the corresponding sounds.
+	lastSound2 byte
 }
 
 const (
@@ -35,6 +68,39 @@ const (
 	displayScale = 3
 	startAddress = 0x0
 )
+
+func NewSpaceInvadersHardware() *SpaceInvadersHardware {
+	soundManager, err := emulator.NewSoundManager(44100, 1, soundFiles)
+	if err != nil {
+		panic(err)
+	}
+
+	soundMapPort3 := map[byte]string{
+		0: "assets/sounds/ufo_repeat_low.qoa",
+		1: "assets/sounds/shoot.qoa",
+		2: "assets/sounds/player_die.qoa",
+		3: "assets/sounds/invader_die.qoa",
+		4: "assets/sounds/extra_play.qoa",
+	}
+
+	soundMapPort5 := map[byte]string{
+		0: "assets/sounds/fleet_move_1.qoa",
+		1: "assets/sounds/fleet_move_2.qoa",
+		2: "assets/sounds/fleet_move_3.qoa",
+		3: "assets/sounds/fleet_move_4.qoa",
+		4: "assets/sounds/ufo_hit.qoa",
+	}
+
+	romData, _ := romFile.ReadFile("assets/invaders.rom")
+
+	return &SpaceInvadersHardware{
+		cyclesPerFrame: 33334,
+		soundManager:   soundManager,
+		soundMapPort3:  soundMapPort3,
+		soundMapPort5:  soundMapPort5,
+		rom:            romData,
+	}
+}
 
 func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 	var result byte
@@ -165,7 +231,8 @@ func (si *SpaceInvadersHardware) OutDeviceName(port byte) string {
 	case 0x06:
 		return "WATCHDOG"
 	default:
-		return fmt.Sprintf("$%02X", port) // Default to hex representation if unknown
+		// Default to hex representation if unknown
+		return fmt.Sprintf("$%02X", port)
 	}
 }
 
@@ -178,12 +245,13 @@ func (si *SpaceInvadersHardware) InDeviceName(port byte) string {
 	case 0x03:
 		return "SHFT_IN"
 	default:
-		return fmt.Sprintf("$%02X", port) // Default to hex representation if unknown
+		// Default to hex representation if unknown
+		return fmt.Sprintf("$%02X", port)
 	}
 }
 
-func (si *SpaceInvadersHardware) InterruptConditions() []emulator.InterruptCondition {
-	return []emulator.InterruptCondition{
+func (si *SpaceInvadersHardware) InterruptConditions() []emulator.Interrupt {
+	return []emulator.Interrupt{
 		{
 			// Mid screen interrupt
 			Cycle: si.cyclesPerFrame / 2,
@@ -204,43 +272,11 @@ func (si *SpaceInvadersHardware) InterruptConditions() []emulator.InterruptCondi
 }
 
 func (si *SpaceInvadersHardware) CyclesPerFrame() int {
-	return si.cyclesPerFrame // The constant value for Space Invaders
-}
-
-func NewSpaceInvadersHardware() *SpaceInvadersHardware {
-	soundManager, err := emulator.NewSoundManagerWithDefaults(soundFiles)
-	if err != nil {
-		panic(err)
-	}
-
-	soundMapPort3 := map[byte]string{
-		0: "assets/sounds/ufo_repeat_low.qoa",
-		1: "assets/sounds/shoot.qoa",
-		2: "assets/sounds/player_die.qoa",
-		3: "assets/sounds/invader_die.qoa",
-		4: "assets/sounds/extra_play.qoa",
-	}
-
-	soundMapPort5 := map[byte]string{
-		0: "assets/sounds/fleet_move_1.qoa",
-		1: "assets/sounds/fleet_move_2.qoa",
-		2: "assets/sounds/fleet_move_3.qoa",
-		3: "assets/sounds/fleet_move_4.qoa",
-		4: "assets/sounds/ufo_hit.qoa",
-	}
-
-	romData, _ := romFile.ReadFile("assets/invaders.rom")
-
-	return &SpaceInvadersHardware{
-		cyclesPerFrame: 33334,
-		soundManager:   soundManager,
-		soundMapPort3:  soundMapPort3,
-		soundMapPort5:  soundMapPort5,
-		ROMData:        romData,
-	}
+	return si.cyclesPerFrame
 }
 
 func (si *SpaceInvadersHardware) Init(memory *[65536]byte) {
+	// memory location 0x2400 to 0x3FFF contain the graphic data
 	si.videoRAM = memory[0x2400:0x4000]
 }
 
@@ -268,9 +304,9 @@ func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 
 			// Set the color of the pixel
 			if pixelOn {
-				img.Set(rotatedX, rotatedY, color.White) // Set pixel to white if "on"
+				img.Set(rotatedX, rotatedY, color.White)
 			} else {
-				img.Set(rotatedX, rotatedY, color.Black) // Set pixel to black if "off"
+				img.Set(rotatedX, rotatedY, color.Black)
 			}
 		}
 	}
@@ -281,12 +317,25 @@ func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 	screen.DrawImage(img, op)
 }
 
+// handleSoundBits handles the playing of sound effects based on changes in the sound control bits.
+// It checks which bits are set in the provided value, compares them with the previous value, and
+// triggers the sound playback if a bit transitions from 0 to 1.
+//
+// Parameters:
+// - value: The current state of the sound control bits.
+// - soundMap: A map where the key is the bit position and the value is the corresponding sound file.
+// - lastValue: A pointer to the previous state of the sound control bits, used to detect changes.
 func (si *SpaceInvadersHardware) handleSoundBits(value byte, soundMap map[byte]string, lastValue *byte) {
 	for bit, soundFile := range soundMap {
+		// Create a bitmask for the current bit position
 		bitMask := 1 << bit
+		// Check if the current bit is set in the new value
 		currentBitSet := value & byte(bitMask)
+		// Check if the current bit was set in the previous value
 		lastBitSet := *lastValue & byte(bitMask)
+		// If the bit transitioned from 0 to 1...
 		if currentBitSet != 0 && lastBitSet == 0 {
+			// Play the corresponding sound
 			si.soundManager.Play(soundFile)
 		}
 	}
@@ -305,6 +354,13 @@ func (si *SpaceInvadersHardware) Scale() int {
 func (si *SpaceInvadersHardware) StartAddress() int {
 	return startAddress
 }
-
 func (si *SpaceInvadersHardware) HandleSystemCall(*emulator.CPU8080) {
+	// no system calls in space invaders!
+}
+func (si *SpaceInvadersHardware) ROM() []byte {
+	return si.rom
+}
+func (si *SpaceInvadersHardware) FrameDuration() time.Duration {
+	// 60 FPS -> 1000ms / 60 = 16.67ms per frame, approximate to 17ms
+	return 17 * time.Millisecond
 }

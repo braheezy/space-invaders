@@ -3,15 +3,17 @@ package cmd
 import (
 	"os"
 
+	"github.com/braheezy/space-invaders/internal/emulator"
+	"github.com/braheezy/space-invaders/internal/invaders"
+	"github.com/charmbracelet/log"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/spf13/cobra"
 )
 
 var debug bool
-var startAddress int
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Show debug messages")
-	rootCmd.PersistentFlags().IntVarP(&startAddress, "start", "s", 0, "Set program start address (in decimal)")
 }
 
 func Execute() {
@@ -21,7 +23,37 @@ func Execute() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:          "8080",
-	Short:        "8080 CPU emulator",
+	Use:   "invaders",
+	Short: "Run Space Invaders",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger := newDefaultLogger()
+		if debug {
+			logger.SetLevel(log.DebugLevel)
+		}
+
+		invadersHardware := invaders.NewSpaceInvadersHardware()
+
+		vm := emulator.NewEmulator(invadersHardware)
+		vm.StartInterruptRoutines()
+		vm.Logger = logger
+		// TODO: Don't hardcode
+		vm.Options.UnlimitedTPS = true
+
+		ebiten.SetWindowTitle("space invaders")
+		if vm.Options.UnlimitedTPS {
+			ebiten.SetTPS(ebiten.SyncWithFPS)
+
+		} else {
+			ebiten.SetTPS(60)
+		}
+		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
+
+		if err := ebiten.RunGame(vm); err != nil && err != ebiten.Termination {
+			logger.Fatal(err)
+		}
+	},
+	CompletionOptions: cobra.CompletionOptions{
+		DisableDefaultCmd: true,
+	},
 	SilenceUsage: true,
 }
