@@ -28,3 +28,7 @@ Or, clone the repository and use `make`:
 You need Go and the dependencies that [Ebiten engine](https://ebitengine.org/en/documents/install.html) has.
 
 Run `make` for various commands to run.
+
+## Roadmap
+- [ ] DIP settings
+- [ ] Persistent high score
