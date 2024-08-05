@@ -62,22 +62,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libc6-dev libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev libasound2-dev pkg-config
-          go mod download
 
-      - name: Install dependencies (macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Install dependencies
         run: go mod download
-
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        run: go mod download
-        shell: cmd
 
       - name: Build
         run: |
           mkdir -p dist
-          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o dist/invaders${{ matrix.EXT }}
-        shell: bash
+          go build -o dist/invaders${{ matrix.EXT }}
 
       - name: Zip build artifacts (Ubuntu and macOS)
         if: matrix.os != 'windows-latest'
