@@ -1,7 +1,7 @@
 # Space Invaders
 An emulation of [Space Invaders (1978)](https://www.wikiwand.com/en/Space_Invaders).
 
-![demo](./demo_part1.mp4)
+![demo](./demo.webp)
 
 ## Installation
 Get a pre-built binary from the on the [Releases](https://github.com/braheezy/space-invaders/releases) page.
