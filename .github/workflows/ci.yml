@@ -67,26 +67,23 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: |
-          mkdir -p dist
-          go build -o dist/invaders${{ matrix.EXT }}
+        run: go build -o space-invaders${{ matrix.EXT }}
 
       - name: Zip build artifacts (Ubuntu and macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          zip -j dist/invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip dist/invaders${{ matrix.EXT }}
+          zip -j space-invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip space-invaders${{ matrix.EXT }}
         shell: bash
 
       - name: Zip build artifacts (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          powershell Compress-Archive -Path dist\\invaders${{ matrix.EXT }} -DestinationPath dist\\invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip
+          powershell Compress-Archive -Path space-invaders${{ matrix.EXT }} -DestinationPath space-invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
-          path: dist/invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip
+          path: invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip
 
   release:
     # if: startsWith(github.ref, 'refs/tags/')
@@ -102,7 +99,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-          path: dist
 
       - name: Release
         uses: softprops/action-gh-release@v2
