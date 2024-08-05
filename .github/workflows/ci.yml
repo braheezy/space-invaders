@@ -89,9 +89,10 @@ jobs:
           path: dist/invaders-${{ matrix.GOOS }}-${{ matrix.GOARCH }}.zip
 
   release:
-    # if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/')
     needs:
       - build
+      - test
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -112,5 +113,5 @@ jobs:
             dist/invaders-linux-amd64.zip
             dist/invaders-darwin-amd64.zip
           generate_release_notes: true
-          draft: true
+          draft: false
           fail_on_unmatched_files: true
