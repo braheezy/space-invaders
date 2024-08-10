@@ -511,10 +511,6 @@ func toUint16(high, low byte) uint16 {
 // This runs the emulator for one frame.
 func (vm *CPU8080) Update() error {
 
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-		return ebiten.Termination
-	}
-
 	// Reset cycle count
 	vm.cycleCount = 0
 	// Execute opcodes
