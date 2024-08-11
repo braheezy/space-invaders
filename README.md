@@ -3,6 +3,8 @@ An emulation of [Space Invaders (1978)](https://www.wikiwand.com/en/Space_Invade
 
 ![demo](./demo.webp)
 
+![settings](./settings.png)
+
 This project contains an 8080 emulator and the necessary fake hardware bits to run the original Space Invaders arcade ROM.
 
 ## Installation
