@@ -47,20 +47,23 @@ Run `make` for various commands to run.
 ## Screenshots
 
 ### Settings Page
-<img src="./assets/settings.png" alt="settings" width="75%">
+<img src="./assets/settings.png" alt="settings" width="50%">
 
 ### [Different Color Overlays](https://tcrf.net/Space_Invaders_(Arcade)#Color_Usage)
-<div style="display: flex; justify-content: space-around;">
-  <figure style="text-align: center;">
-    <img src="./assets/bw.png" alt="black and white overlay" >
-    <figcaption>Black and White Overlay</figcaption>
-  </figure>
-  <figure style="text-align: center;">
-    <img src="./assets/tv.png" alt="tv overlay" >
-    <figcaption>TV Overlay</figcaption>
-  </figure>
-  <figure style="text-align: center;">
-    <img src="./assets/cv.png" alt="cv overlay" >
-    <figcaption>CV Overlay</figcaption>
-  </figure>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="./assets/bw.png" alt="black and white overlay" width="250px">
+      <br>Black and White Overlay
+    </td>
+    <td align="center">
+      <img src="./assets/tv.png" alt="tv overlay" width="250px">
+      <br>TV Overlay
+    </td>
+    <td align="center">
+      <img src="./assets/cv.png" alt="cv overlay" width="250px">
+      <br>CV Overlay
+    </td>
+  </tr>
+</table>
+
