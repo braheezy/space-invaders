@@ -101,3 +101,6 @@ func (cpm *CPMHardware) ROM() []byte {
 func (cpm *CPMHardware) FrameDuration() time.Duration {
 	return 17 * time.Millisecond
 }
+func (cpm *CPMHardware) Cleanup() {
+	//no-op
+}

@@ -32,23 +32,59 @@ func NewMenuScreen(settingsFile string) *MenuScreen {
 }
 
 func (ms *MenuScreen) initializeDefaultSettings() {
-	ms.settings = []Setting{
-		&OnOffSetting{name: "Tilt", value: false},
-		&OnOffSetting{name: "Coin Info", value: true},
-		// &RangeSetting{name: "Ships", value: 3, minVal: 3, maxVal: 6},
-	}
+	// Clone the default settings to ms.settings
+	ms.settings = NewDefaultSettings()
 
 	// Initialize the help section separately
 	ms.helpSection = &HelpSection{
-		name: "Help - Game Controls",
+		name: "Game Controls",
 		controls: []string{
-			"Arrow Keys - Move",
+			"Arrow Keys/WASD - Move, Navigate menu",
+			"C - Insert credit",
+			"1 - Player 1 Start",
+			"2 - Player 2 Start",
+			"T - Tilt",
 			"Space - Shoot",
-			"Tab - Toggle Settings",
-			"Esc - Quit Game",
-			// Add more controls as needed
+			"Tab - Toggle menu",
+			"Esc - Quit",
 		},
 	}
+}
+
+func (ms *MenuScreen) GetLimitTPS() bool {
+	for _, setting := range ms.settings {
+		if onOffSetting, ok := setting.(*OnOffSetting); ok && onOffSetting.name == "Limit to 60 FPS" {
+			return onOffSetting.value
+		}
+	}
+	return true
+}
+
+func (ms *MenuScreen) GetShipsSetting() int {
+	for _, setting := range ms.settings {
+		if rangeSetting, ok := setting.(*RangeSetting); ok && rangeSetting.name == "Ship Count" {
+			return rangeSetting.value
+		}
+	}
+	return 3 // Default to 3 ships if not found
+}
+
+func (ms *MenuScreen) GetExtraShipAt1000() bool {
+	for _, setting := range ms.settings {
+		if onOffSetting, ok := setting.(*OnOffSetting); ok && onOffSetting.name == "Extra ship at 1000 instead of 1500" {
+			return onOffSetting.value
+		}
+	}
+	return false // Default to extra ship at 1500
+}
+
+func (ms *MenuScreen) GetShowCoinInfoOnDemo() bool {
+	for _, setting := range ms.settings {
+		if onOffSetting, ok := setting.(*OnOffSetting); ok && onOffSetting.name == "Show coin info on demo screen" {
+			return onOffSetting.value
+		}
+	}
+	return true // Default to showing coin info
 }
 
 func (ms *MenuScreen) loadSettings() error {
@@ -60,7 +96,6 @@ func (ms *MenuScreen) loadSettings() error {
 	} else if err != nil {
 		return err
 	}
-	println("here", err)
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
@@ -69,7 +104,7 @@ func (ms *MenuScreen) loadSettings() error {
 		return err
 	}
 
-	ms.initializeDefaultSettings() // Initialize default settings first
+	ms.initializeDefaultSettings()
 
 	for _, setting := range ms.settings {
 		if value, ok := loadedSettings[setting.Name()]; ok {
@@ -82,25 +117,38 @@ func (ms *MenuScreen) loadSettings() error {
 }
 
 func (ms *MenuScreen) saveSettings() error {
+	defaultSettings := NewDefaultSettings()
+	settingsMap := make(map[string]interface{})
+
+	for _, setting := range ms.settings {
+		for _, defaultSetting := range defaultSettings {
+			if setting.Name() == defaultSetting.Name() && setting.Value() != defaultSetting.Value() {
+				settingsMap[setting.Name()] = setting.Value()
+				break
+			}
+		}
+	}
+
+	if len(settingsMap) == 0 {
+		// No settings to save, skip creating or writing to the file
+		return nil
+	}
+
+	// Now proceed to create and save the file only if there are settings to save
 	file, err := os.Create(ms.settingsFile)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	settingsMap := make(map[string]interface{})
-	for _, setting := range ms.settings {
-		settingsMap[setting.Name()] = setting.Value()
-	}
-
 	encoder := json.NewEncoder(file)
 	return encoder.Encode(settingsMap)
 }
 
 func (ms *MenuScreen) Update() {
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		ms.selectedIndex = (ms.selectedIndex + 1) % len(ms.settings) // Wrap around to the first setting
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		ms.selectedIndex--
 		if ms.selectedIndex < 0 {
 			ms.selectedIndex = len(ms.settings) - 1 // Wrap around to the last setting
@@ -110,18 +158,28 @@ func (ms *MenuScreen) Update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		ms.toggleSelectedSetting()
 	}
+
+	// Handle left/right arrow keys for range settings
+	selectedSetting := ms.settings[ms.selectedIndex]
+	if rangeSetting, ok := selectedSetting.(*RangeSetting); ok {
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
+			if rangeSetting.value > rangeSetting.minVal {
+				rangeSetting.value--
+			}
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
+			if rangeSetting.value < rangeSetting.maxVal {
+				rangeSetting.value++
+			}
+		}
+	}
 }
 
 func (ms *MenuScreen) toggleSelectedSetting() {
-	// Use a debounce approach to avoid flickering
-	// if ms.selectedIndex < 0 || ms.selectedIndex >= len(ms.settings) {
-	// 	return
-	// }
 
 	selectedSetting := ms.settings[ms.selectedIndex]
 	switch setting := selectedSetting.(type) {
 	case *OnOffSetting:
-		if ebiten.IsKeyPressed(ebiten.KeyEnter) { // Debounce to prevent flickering
+		if ebiten.IsKeyPressed(ebiten.KeyEnter) {
 			setting.SetValue(!setting.value)
 		}
 	case *RangeSetting:
@@ -133,16 +191,19 @@ func (ms *MenuScreen) toggleSelectedSetting() {
 		setting.SetValue(newValue)
 	}
 
-	// Save settings after a change
-	if err := ms.saveSettings(); err != nil {
-		ms.errorMessage = fmt.Sprintf("Error saving settings: %v", err)
-	}
 }
 
 func (ms *MenuScreen) Draw(screen *ebiten.Image) {
-	// Calculate the start position for drawing
+	// Render the overall menu title
+	menuTitle := "Settings Menu"
+	titleOp := &text.DrawOptions{}
+	titleOp.GeoM.Translate(float64(50), float64(20)) // Position at the top of the screen
+	titleOp.ColorScale.ScaleWithColor(color.RGBA{196, 167, 231, 255})
+	text.Draw(screen, menuTitle, loadedFont, titleOp)
+
+	// Calculate the start position for drawing the settings
 	startX := 50
-	startY := 50
+	startY := 70 // Adjust startY to account for the title
 	lineHeight := 30
 
 	// Iterate through each setting and draw it

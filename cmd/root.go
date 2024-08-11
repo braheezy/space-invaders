@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/braheezy/space-invaders/internal/emulator"
@@ -36,21 +37,20 @@ var rootCmd = &cobra.Command{
 		vm := emulator.NewEmulator(invadersHardware)
 		vm.StartInterruptRoutines()
 		vm.Logger = logger
-		// TODO: Don't hardcode
-		vm.Options.UnlimitedTPS = true
 
 		game := NewSpaceInvadersGame(vm)
+		vm.Options.LimitTPS = game.menuScreen.GetLimitTPS()
 
 		ebiten.SetWindowTitle("space invaders")
-		if vm.Options.UnlimitedTPS {
+		if vm.Options.LimitTPS {
 			ebiten.SetTPS(ebiten.SyncWithFPS)
-
 		} else {
 			ebiten.SetTPS(60)
 		}
 		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
 
 		if err := ebiten.RunGame(game); err != nil && err != ebiten.Termination {
+			game.cpuEmulator.Hardware.Cleanup()
 			logger.Fatal(err)
 		}
 	},
@@ -65,7 +65,7 @@ type SpaceInvadersGame struct {
 	cpuEmulator    *emulator.CPU8080
 	inSettingsMenu bool
 	menuScreen     *MenuScreen
-	tabPressed     bool // New field to track the Tab key state
+	tabPressed     bool
 }
 
 // NewSpaceInvadersGame creates a new SpaceInvadersGame instance
@@ -73,7 +73,7 @@ func NewSpaceInvadersGame(cpuEmulator *emulator.CPU8080) *SpaceInvadersGame {
 	return &SpaceInvadersGame{
 		cpuEmulator:    cpuEmulator,
 		inSettingsMenu: false,
-		menuScreen:     NewMenuScreen("settings.json"), // Initialize with the settings file
+		menuScreen:     NewMenuScreen("settings.json"),
 	}
 }
 
@@ -131,6 +131,17 @@ func (game *SpaceInvadersGame) toggleSettingsMenu() {
 		// Initialize menu screen with a specified settings file path
 		game.menuScreen = NewMenuScreen("settings.json")
 	} else {
+		// Save settings after a change
+		if err := game.menuScreen.saveSettings(); err != nil {
+			game.menuScreen.errorMessage = fmt.Sprintf("Error saving settings: %v", err)
+		}
+
+		// Update game settings from the menu screen
+		hardware := game.cpuEmulator.Hardware.(*invaders.SpaceInvadersHardware)
+		hardware.ShipsSetting = game.menuScreen.GetShipsSetting()
+		hardware.ExtraShipAt1000 = game.menuScreen.GetExtraShipAt1000()
+		// Coin info displayed in demo screen 0=ON
+		hardware.ShowCoinInfoOnDemo = !game.menuScreen.GetShowCoinInfoOnDemo()
 		// Close the menu screen
 		game.menuScreen = nil
 	}

@@ -35,7 +35,7 @@ func (hs *HelpSection) Render(screen *ebiten.Image, x, y int, selected bool) {
 	title := "Help - Game Controls"
 	op := &text.DrawOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorScale.ScaleWithColor(color.White)
+	op.ColorScale.ScaleWithColor(color.RGBA{196, 167, 231, 255})
 	text.Draw(screen, title, loadedFont, op)
 
 	// Adjust the starting y-coordinate for the controls

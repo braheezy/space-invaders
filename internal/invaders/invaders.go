@@ -60,6 +60,11 @@ type SpaceInvadersHardware struct {
 	// lastSound2 holds the previous state of the sound control bits for port 5.
 	// This value is used to detect changes in the sound control bits and play the corresponding sounds.
 	lastSound2 byte
+
+	// DIP switch settings
+	ShipsSetting       int  // 3, 4, 5, or 6 ships
+	ExtraShipAt1000    bool // true = extra ship at 1000, false = extra ship at 1500
+	ShowCoinInfoOnDemo bool // true = show coin info, false = don't show
 }
 
 const (
@@ -154,21 +159,25 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 			 bit 6 = P2 right (1 if pressed)
 			 bit 7 = DIP7 Coin info displayed in demo screen 0=ON
 		*/
-		// TODO: Make DIP setting user configurable
-		dip3 := false
-		dip5 := false
-		if !dip3 && !dip5 {
-			// 3 ships
+		switch si.ShipsSetting {
+		case 3:
 			result |= 0x00
-		} else if dip3 && !dip5 {
-			// 4 ships
+		case 4:
 			result |= 0x01
-		} else if !dip3 && dip5 {
-			// 5 ships
+		case 5:
 			result |= 0x02
-		} else if dip3 && dip5 {
-			// 6 ships
+		case 6:
 			result |= 0x03
+		}
+
+		// Extra ship at 1000 or 1500
+		if si.ExtraShipAt1000 {
+			result |= 0x08 // Set bit 3 if extra ship is at 1000
+		}
+
+		// Show coin info on demo screen
+		if si.ShowCoinInfoOnDemo {
+			result |= 0x80 // Set bit 7 to display coin info in demo
 		}
 
 		// Tilt
@@ -180,11 +189,11 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 			result |= 0x10
 		}
 		// Player 2 left
-		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 			result |= 0x20
 		}
 		// Player 2 right
-		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
 			result |= 0x40
 		}
 	case 0x03:
@@ -363,4 +372,7 @@ func (si *SpaceInvadersHardware) ROM() []byte {
 func (si *SpaceInvadersHardware) FrameDuration() time.Duration {
 	// 60 FPS -> 1000ms / 60 = 16.67ms per frame, approximate to 17ms
 	return 17 * time.Millisecond
+}
+func (si *SpaceInvadersHardware) Cleanup() {
+	si.soundManager.Cleanup()
 }

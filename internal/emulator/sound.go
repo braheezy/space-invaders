@@ -100,6 +100,12 @@ func (sm *SoundManager) Pause(filePath string) {
 	}
 }
 
+func (sm *SoundManager) Cleanup() {
+	for _, player := range sm.players {
+		player.Close()
+	}
+}
+
 // setupWavPlayer decodes WAV data and creates a new player from it.
 func setupWavPlayer(data []byte, ctx *oto.Context) (*oto.Player, error) {
 	wavReader := bytes.NewReader(data)
