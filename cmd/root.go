@@ -43,9 +43,9 @@ var rootCmd = &cobra.Command{
 
 		ebiten.SetWindowTitle("space invaders")
 		if vm.Options.LimitTPS {
-			ebiten.SetTPS(ebiten.SyncWithFPS)
-		} else {
 			ebiten.SetTPS(60)
+		} else {
+			ebiten.SetTPS(ebiten.SyncWithFPS)
 		}
 		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
 
@@ -53,6 +53,7 @@ var rootCmd = &cobra.Command{
 			game.cpuEmulator.Hardware.Cleanup()
 			logger.Fatal(err)
 		}
+		game.cpuEmulator.Hardware.Cleanup()
 	},
 	CompletionOptions: cobra.CompletionOptions{
 		DisableDefaultCmd: true,
