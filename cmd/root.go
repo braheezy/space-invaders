@@ -41,6 +41,13 @@ var rootCmd = &cobra.Command{
 		game := NewSpaceInvadersGame(vm)
 		vm.Options.LimitTPS = game.menuScreen.GetLimitTPS()
 
+		hardware := game.cpuEmulator.Hardware.(*invaders.SpaceInvadersHardware)
+		hardware.ShipsSetting = game.menuScreen.GetShipsSetting()
+		hardware.ExtraShipAt1000 = game.menuScreen.GetExtraShipAt1000()
+		// Coin info displayed in demo screen 0=ON
+		hardware.ShowCoinInfoOnDemo = !game.menuScreen.GetShowCoinInfoOnDemo()
+		hardware.ColorScheme = game.menuScreen.GetColorScheme()
+
 		ebiten.SetWindowTitle("space invaders")
 		if vm.Options.LimitTPS {
 			ebiten.SetTPS(60)
@@ -143,6 +150,9 @@ func (game *SpaceInvadersGame) toggleSettingsMenu() {
 		hardware.ExtraShipAt1000 = game.menuScreen.GetExtraShipAt1000()
 		// Coin info displayed in demo screen 0=ON
 		hardware.ShowCoinInfoOnDemo = !game.menuScreen.GetShowCoinInfoOnDemo()
+		hardware.ColorScheme = game.menuScreen.GetColorScheme()
+
+		game.cpuEmulator.Options.LimitTPS = game.menuScreen.GetLimitTPS()
 		// Close the menu screen
 		game.menuScreen = nil
 	}

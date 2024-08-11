@@ -19,17 +19,21 @@ func (hs *HelpSection) Name() string {
 }
 
 func (hs *HelpSection) Value() interface{} {
-	return nil // HelpSection has no modifiable value
+	// HelpSection has no modifiable value
+	return nil
 }
 
 func (hs *HelpSection) SetValue(val interface{}) error {
-	return nil // HelpSection cannot be modified
+	// HelpSection cannot be modified
+	return nil
 }
 
 func (hs *HelpSection) Render(screen *ebiten.Image, x, y int, selected bool) {
 	// Colors for the bindings and descriptions
-	bindingColor := color.RGBA{255, 255, 0, 255}       // Yellow for the keybinding
-	descriptionColor := color.RGBA{255, 255, 255, 255} // White for the description
+	// Yellow for the keybinding
+	bindingColor := color.RGBA{255, 255, 0, 255}
+	// White for the description
+	descriptionColor := color.RGBA{255, 255, 255, 255}
 
 	// Render the help section title
 	title := "Help - Game Controls"
@@ -39,27 +43,28 @@ func (hs *HelpSection) Render(screen *ebiten.Image, x, y int, selected bool) {
 	text.Draw(screen, title, loadedFont, op)
 
 	// Adjust the starting y-coordinate for the controls
-	y += 40 // Adjust spacing as needed
+	y += 40
 
 	// Render each control in the list
 	for i, control := range hs.controls {
 		// Split the control into binding and description
 		parts := strings.SplitN(control, " - ", 2)
 		if len(parts) != 2 {
-			continue // Skip malformed entries
+			// Skip malformed entries
+			continue
 		}
 		binding := parts[0]
 		description := parts[1]
 
 		// Render the keybinding
 		op = &text.DrawOptions{}
-		op.GeoM.Translate(float64(x), float64(y+(i*30))) // Adjust line height as needed
+		op.GeoM.Translate(float64(x), float64(y+(i*30)))
 		op.ColorScale.ScaleWithColor(bindingColor)
 		text.Draw(screen, binding, loadedFont, op)
 
 		// Render the description in the second column
 		op = &text.DrawOptions{}
-		op.GeoM.Translate(float64(x+200), float64(y+(i*30))) // Adjust x+200 for column spacing
+		op.GeoM.Translate(float64(x+200), float64(y+(i*30)))
 		op.ColorScale.ScaleWithColor(descriptionColor)
 		text.Draw(screen, description, loadedFont, op)
 	}

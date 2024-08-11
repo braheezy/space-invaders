@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"log"
 
+	"github.com/braheezy/space-invaders/internal/invaders"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
@@ -29,6 +30,7 @@ var (
 
 func NewDefaultSettings() []Setting {
 	return []Setting{
+		&ColorSchemeSetting{name: "Color scheme", value: invaders.BlackAndWhite},
 		&OnOffSetting{name: "Show coin info on demo screen", value: true},
 		&OnOffSetting{name: "Extra ship at 1000 instead of 1500", value: false},
 		&OnOffSetting{name: "Limit to 60 FPS", value: false},
@@ -45,7 +47,7 @@ func init() {
 	mplusFaceSource = s
 	loadedFont = &text.GoTextFace{
 		Source: mplusFaceSource,
-		Size:   12, // Example font size, adjust as needed
+		Size:   12,
 	}
 
 	// Load the ship image
@@ -88,20 +90,21 @@ func (s *OnOffSetting) SetValue(val interface{}) error {
 
 func (s *OnOffSetting) Render(screen *ebiten.Image, x, y int, selected bool) {
 	// Set colors for ON and OFF states
-	onColor := color.RGBA{0, 255, 0, 255}  // Green color for "ON"
-	offColor := color.RGBA{255, 0, 0, 255} // Red color for "OFF"
+	onColor := color.RGBA{0, 255, 0, 255}
+	offColor := color.RGBA{255, 0, 0, 255}
 
 	// Draw the arrow if the setting is selected
 	if selected {
 		op := &text.DrawOptions{}
-		op.GeoM.Translate(float64(x-20), float64(y)) // Position the arrow slightly to the left
+		// Position the arrow slightly to the left
+		op.GeoM.Translate(float64(x-20), float64(y))
 		op.ColorScale.ScaleWithColor(color.White)
 		text.Draw(screen, ">", loadedFont, op)
 	}
 
 	// Draw the setting name
 	nameOp := &text.DrawOptions{}
-	nameOp.GeoM.Translate(float64(x), float64(y)) // Position for setting name
+	nameOp.GeoM.Translate(float64(x), float64(y))
 	nameOp.ColorScale.ScaleWithColor(color.White)
 	text.Draw(screen, s.name, loadedFont, nameOp)
 
@@ -109,11 +112,12 @@ func (s *OnOffSetting) Render(screen *ebiten.Image, x, y int, selected bool) {
 	nameWidth, _ := text.Measure(s.name, loadedFont, 1.0)
 
 	// Calculate the position for the ON/OFF status based on the name width
-	statusX := float64(x) + nameWidth + 20 // Add some padding after the name
+	// Add some padding after the name
+	statusX := float64(x) + nameWidth + 20
 
 	// Draw the ON/OFF status next to the setting name
 	statusOp := &text.DrawOptions{}
-	statusOp.GeoM.Translate(statusX, float64(y)) // Position for status text
+	statusOp.GeoM.Translate(statusX, float64(y))
 	if s.value {
 		statusOp.ColorScale.ScaleWithColor(onColor)
 		text.Draw(screen, "ON", loadedFont, statusOp)
@@ -164,16 +168,17 @@ func (s *RangeSetting) Render(screen *ebiten.Image, x, y int, selected bool) {
 	text.Draw(screen, s.name, loadedFont, nameOp)
 
 	// Calculate the position and size for rendering the ships
-	shipX := x + 200 // Start drawing ships to the right of the setting name
+	// Start drawing ships to the right of the setting name
+	shipX := x + 200
 	shipY := y
-	shipScale := 0.10 // Scale factor for the ship image
+	shipScale := 0.10
 	shipWidth := float64(shipImage.Bounds().Dx()) * shipScale
-	shipSpacing := shipWidth + 10 // Space between ships
+	shipSpacing := shipWidth + 10
 
 	// Render each ship based on the selected value
 	for i := 0; i < s.value; i++ {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(shipScale, shipScale) // Apply scaling to the image
+		op.GeoM.Scale(shipScale, shipScale)
 		op.GeoM.Translate(float64(shipX)+(float64(i)*shipSpacing), float64(shipY))
 		screen.DrawImage(shipImage, op)
 	}
@@ -181,7 +186,79 @@ func (s *RangeSetting) Render(screen *ebiten.Image, x, y int, selected bool) {
 	// If selected, indicate that this setting is active
 	if selected {
 		arrowOp := &text.DrawOptions{}
-		arrowOp.GeoM.Translate(float64(x-20), float64(y)) // Arrow to indicate selection
+		arrowOp.GeoM.Translate(float64(x-20), float64(y))
+		arrowOp.ColorScale.ScaleWithColor(color.White)
+		text.Draw(screen, ">", loadedFont, arrowOp)
+	}
+}
+
+// ColorSchemeSetting represents a setting with multiple predefined values (BW, TV, CV).
+type ColorSchemeSetting struct {
+	name  string
+	value invaders.ColorScheme
+}
+
+func (s *ColorSchemeSetting) Name() string {
+	return s.name
+}
+
+func (s *ColorSchemeSetting) Value() interface{} {
+	return invaders.ColorSchemeNames[s.value]
+}
+
+func (s *ColorSchemeSetting) SetValue(val interface{}) error {
+	switch v := val.(type) {
+	case invaders.ColorScheme:
+		if v >= invaders.BlackAndWhite && v <= invaders.CV {
+			s.value = v
+			return nil
+		}
+	case string:
+		for i, name := range invaders.ColorSchemeNames {
+			if name == v {
+				s.value = invaders.ColorScheme(i)
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("invalid value or out of range")
+}
+func (s *ColorSchemeSetting) Render(screen *ebiten.Image, x, y int, selected bool) {
+	// Render the setting name
+	nameOp := &text.DrawOptions{}
+	nameOp.GeoM.Translate(float64(x), float64(y))
+	nameOp.ColorScale.ScaleWithColor(color.White)
+	text.Draw(screen, s.name, loadedFont, nameOp)
+
+	// Measure the width of the setting name
+	nameWidth, _ := text.Measure(s.name, loadedFont, 1.0)
+
+	// Calculate the position for the setting values
+	valueX := float64(x) + nameWidth + 20
+
+	// Render all available values (BW, TV, CV)
+	for i, value := range invaders.ColorSchemeNames {
+		valueOp := &text.DrawOptions{}
+		valueOp.GeoM.Translate(valueX, float64(y))
+
+		// Highlight the selected value with a different color
+		if invaders.ColorScheme(i) == s.value {
+			valueOp.ColorScale.ScaleWithColor(color.RGBA{0, 255, 0, 255})
+		} else {
+			valueOp.ColorScale.ScaleWithColor(color.White)
+		}
+
+		text.Draw(screen, value, loadedFont, valueOp)
+
+		// Update the x position for the next value
+		valueWidth, _ := text.Measure(value, loadedFont, 1.0)
+		valueX += float64(valueWidth) + 20
+	}
+
+	// If this setting is selected in the overall list, draw an arrow
+	if selected {
+		arrowOp := &text.DrawOptions{}
+		arrowOp.GeoM.Translate(float64(x-20), float64(y))
 		arrowOp.ColorScale.ScaleWithColor(color.White)
 		text.Draw(screen, ">", loadedFont, arrowOp)
 	}

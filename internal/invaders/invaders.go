@@ -3,6 +3,7 @@ package invaders
 import (
 	"embed"
 	"fmt"
+	"image"
 	"time"
 
 	"github.com/braheezy/space-invaders/internal/emulator"
@@ -14,6 +15,23 @@ var soundFiles embed.FS
 
 //go:embed assets/invaders.rom
 var romFile embed.FS
+
+//go:embed assets/SpaceInvadersArcColorUseCV.png
+var cvColorOverlay embed.FS
+
+type ColorScheme int
+
+const (
+	BlackAndWhite ColorScheme = iota
+	TV
+	CV
+)
+
+var ColorSchemeNames = []string{
+	"BW",
+	"TV",
+	"CV",
+}
 
 // SpaceInvadersHardware represents the hardware-specific implementation for the Space Invaders game.
 type SpaceInvadersHardware struct {
@@ -64,10 +82,16 @@ type SpaceInvadersHardware struct {
 	// This value is used to detect changes in the sound control bits and play the corresponding sounds.
 	lastSound2 byte
 
+	ColorScheme    ColorScheme
+	cvColorOverlay image.Image
+
 	// DIP switch settings
-	ShipsSetting       int  // 3, 4, 5, or 6 ships
-	ExtraShipAt1000    bool // true = extra ship at 1000, false = extra ship at 1500
-	ShowCoinInfoOnDemo bool // true = show coin info, false = don't show
+	// 3, 4, 5, or 6 ships
+	ShipsSetting int
+	// true = extra ship at 1000, false = extra ship at 1500
+	ExtraShipAt1000 bool
+	// true = show coin info, false = don't show
+	ShowCoinInfoOnDemo bool
 }
 
 const (
@@ -101,12 +125,17 @@ func NewSpaceInvadersHardware() *SpaceInvadersHardware {
 
 	romData, _ := romFile.ReadFile("assets/invaders.rom")
 
+	cvColorImageFile, _ := cvColorOverlay.Open("assets/SpaceInvadersArcColorUseCV.png")
+	img, _, _ := image.Decode(cvColorImageFile)
+
 	return &SpaceInvadersHardware{
 		cyclesPerFrame: 33334,
 		soundManager:   soundManager,
 		soundMapPort3:  soundMapPort3,
 		soundMapPort5:  soundMapPort5,
 		rom:            romData,
+		ColorScheme:    BlackAndWhite,
+		cvColorOverlay: img,
 	}
 }
 
@@ -175,12 +204,14 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 
 		// Extra ship at 1000 or 1500
 		if si.ExtraShipAt1000 {
-			result |= 0x08 // Set bit 3 if extra ship is at 1000
+			// Set bit 3
+			result |= 0x08
 		}
 
 		// Show coin info on demo screen
 		if si.ShowCoinInfoOnDemo {
-			result |= 0x80 // Set bit 7 to display coin info in demo
+			// Set bit 7
+			result |= 0x80
 		}
 
 		// Tilt
@@ -313,15 +344,72 @@ func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
 			index := (rotatedY*videoWidth + rotatedX) * 4
 
 			if pixelOn {
-				si.pixels[index] = 0xFF   // R
-				si.pixels[index+1] = 0xFF // G
-				si.pixels[index+2] = 0xFF // B
-				si.pixels[index+3] = 0xFF // A
+				switch si.ColorScheme {
+				case BlackAndWhite:
+					si.pixels[index] = 0xFF   // R
+					si.pixels[index+1] = 0xFF // G
+					si.pixels[index+2] = 0xFF // B
+					si.pixels[index+3] = 0xFF // A
+
+				case TV:
+					if rotatedY >= 16 && rotatedY < 32 {
+						// Red region
+						si.pixels[index] = 0xFF   // R
+						si.pixels[index+1] = 0x00 // G
+						si.pixels[index+2] = 0x00 // B
+						si.pixels[index+3] = 0xFF // A
+					} else if rotatedY >= (videoHeight - 72) {
+						if !(rotatedY >= (videoHeight-16) && rotatedX < 25) && // Bottom left cutout
+							!(rotatedY >= (videoHeight-16) && rotatedX >= (videoWidth-88)) { // Bottom right cutout
+							// Green region
+							si.pixels[index] = 0x00   // R
+							si.pixels[index+1] = 0xFF // G
+							si.pixels[index+2] = 0x00 // B
+							si.pixels[index+3] = 0xFF // A
+						} else {
+							// Cutout region or area outside the green overlay
+							si.pixels[index] = 0xFF   // R
+							si.pixels[index+1] = 0xFF // G
+							si.pixels[index+2] = 0xFF // B
+							si.pixels[index+3] = 0xFF // A
+						}
+					} else {
+						// Default to white if not in any special region
+						si.pixels[index] = 0xFF   // R
+						si.pixels[index+1] = 0xFF // G
+						si.pixels[index+2] = 0xFF // B
+						si.pixels[index+3] = 0xFF // A
+					}
+				case CV:
+					if si.cvColorOverlay == nil {
+						si.pixels[index] = 0x00   // R
+						si.pixels[index+1] = 0x00 // G
+						si.pixels[index+2] = 0x00 // B
+						si.pixels[index+3] = 0xFF // A
+					} else {
+						if pixelOn {
+
+							// Sample the color from the CV overlay
+							r, g, b, a := si.sampleCVColor(rotatedX, rotatedY)
+
+							si.pixels[index] = r   // R
+							si.pixels[index+1] = g // G
+							si.pixels[index+2] = b // B
+							si.pixels[index+3] = a // A
+						} else {
+							si.pixels[index] = 0x00   // R
+							si.pixels[index+1] = 0x00 // G
+							si.pixels[index+2] = 0x00 // B
+							si.pixels[index+3] = 0xFF // A
+						}
+					}
+				}
+
 			} else {
 				si.pixels[index] = 0x00   // R
 				si.pixels[index+1] = 0x00 // G
 				si.pixels[index+2] = 0x00 // B
-				si.pixels[index+3] = 0xFF // A (or 0x00 for transparent)
+				si.pixels[index+3] = 0xFF // A
 			}
 		}
 	}
@@ -384,4 +472,34 @@ func (si *SpaceInvadersHardware) FrameDuration() time.Duration {
 }
 func (si *SpaceInvadersHardware) Cleanup() {
 	si.soundManager.Cleanup()
+}
+
+// Helper function to sample color from the CV overlay
+// ! Because the overlay reference has game sprites also, certain samples will result
+// ! in a different color.
+// ! All sampled RGB values for all color are either 0, 128 (the base color), or 255 (illuminated when a
+// ! sprite is drawn.
+func (si *SpaceInvadersHardware) sampleCVColor(x, y int) (r, g, b, a uint8) {
+	// Get the color from the overlay
+	overlayColor := si.cvColorOverlay.At(x, y)
+	r32, g32, b32, _ := overlayColor.RGBA()
+
+	// Convert to 8-bit color values
+	r8 := uint8(r32 >> 8)
+	g8 := uint8(g32 >> 8)
+	b8 := uint8(b32 >> 8)
+
+	// Determine if the color needs to be doubled
+	if r8 == 128 {
+		r8 = 255
+	}
+	if g8 == 128 {
+		g8 = 255
+	}
+	if b8 == 128 {
+		b8 = 255
+	}
+
+	// Use the calculated color for "on" pixels
+	return r8, g8, b8, 0xFF
 }

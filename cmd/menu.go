@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/braheezy/space-invaders/internal/invaders"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -67,7 +68,7 @@ func (ms *MenuScreen) GetShipsSetting() int {
 			return rangeSetting.value
 		}
 	}
-	return 3 // Default to 3 ships if not found
+	return 3
 }
 
 func (ms *MenuScreen) GetExtraShipAt1000() bool {
@@ -76,7 +77,7 @@ func (ms *MenuScreen) GetExtraShipAt1000() bool {
 			return onOffSetting.value
 		}
 	}
-	return false // Default to extra ship at 1500
+	return false
 }
 
 func (ms *MenuScreen) GetShowCoinInfoOnDemo() bool {
@@ -85,7 +86,16 @@ func (ms *MenuScreen) GetShowCoinInfoOnDemo() bool {
 			return onOffSetting.value
 		}
 	}
-	return true // Default to showing coin info
+	return true
+}
+
+func (ms *MenuScreen) GetColorScheme() invaders.ColorScheme {
+	for _, setting := range ms.settings {
+		if colorSchemeSetting, ok := setting.(*ColorSchemeSetting); ok && colorSchemeSetting.name == "Color scheme" {
+			return colorSchemeSetting.value
+		}
+	}
+	return invaders.BlackAndWhite
 }
 
 func (ms *MenuScreen) loadSettings() error {
@@ -131,7 +141,12 @@ func (ms *MenuScreen) saveSettings() error {
 	}
 
 	if len(settingsMap) == 0 {
-		// No settings to save, skip creating or writing to the file
+		// No settings to save, delete the settings file if it exists
+		if _, err := os.Stat(ms.settingsFile); err == nil {
+			if err := os.Remove(ms.settingsFile); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 
@@ -148,11 +163,13 @@ func (ms *MenuScreen) saveSettings() error {
 
 func (ms *MenuScreen) Update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		ms.selectedIndex = (ms.selectedIndex + 1) % len(ms.settings) // Wrap around to the first setting
+		// Wrap around to the first setting
+		ms.selectedIndex = (ms.selectedIndex + 1) % len(ms.settings)
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		ms.selectedIndex--
 		if ms.selectedIndex < 0 {
-			ms.selectedIndex = len(ms.settings) - 1 // Wrap around to the last setting
+			// Wrap around to the last setting
+			ms.selectedIndex = len(ms.settings) - 1
 		}
 	}
 
@@ -160,23 +177,32 @@ func (ms *MenuScreen) Update() {
 		ms.toggleSelectedSetting()
 	}
 
-	// Handle left/right arrow keys for range settings
+	// Handle left/right arrow keys for range and color scheme settings
 	selectedSetting := ms.settings[ms.selectedIndex]
-	if rangeSetting, ok := selectedSetting.(*RangeSetting); ok {
+	switch setting := selectedSetting.(type) {
+	case *RangeSetting:
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
-			if rangeSetting.value > rangeSetting.minVal {
-				rangeSetting.value--
+			if setting.value > setting.minVal {
+				setting.value--
 			}
 		} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
-			if rangeSetting.value < rangeSetting.maxVal {
-				rangeSetting.value++
+			if setting.value < setting.maxVal {
+				setting.value++
 			}
+		}
+	case *ColorSchemeSetting:
+		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
+			newScheme := (int(setting.value) + len(invaders.ColorSchemeNames) - 1) % len(invaders.ColorSchemeNames)
+			// Decrease and wrap around
+			setting.SetValue(invaders.ColorScheme(newScheme))
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
+			newScheme := (int(setting.value) + 1) % len(invaders.ColorSchemeNames)
+			// Increase and wrap around
+			setting.SetValue(invaders.ColorScheme(newScheme))
 		}
 	}
 }
-
 func (ms *MenuScreen) toggleSelectedSetting() {
-
 	selectedSetting := ms.settings[ms.selectedIndex]
 	switch setting := selectedSetting.(type) {
 	case *OnOffSetting:
@@ -190,33 +216,40 @@ func (ms *MenuScreen) toggleSelectedSetting() {
 			newValue = setting.minVal
 		}
 		setting.SetValue(newValue)
+	case *ColorSchemeSetting:
+		// Cycle through the color schemes
+		newScheme := (int(setting.value) + 1) % len(invaders.ColorSchemeNames)
+		setting.SetValue(invaders.ColorScheme(newScheme))
 	}
-
 }
 
 func (ms *MenuScreen) Draw(screen *ebiten.Image) {
 	// Render the overall menu title
 	menuTitle := "Settings Menu"
 	titleOp := &text.DrawOptions{}
-	titleOp.GeoM.Translate(float64(50), float64(20)) // Position at the top of the screen
+	// Position at the top of the screen
+	titleOp.GeoM.Translate(float64(50), float64(20))
 	titleOp.ColorScale.ScaleWithColor(color.RGBA{196, 167, 231, 255})
 	text.Draw(screen, menuTitle, loadedFont, titleOp)
 
 	// Calculate the start position for drawing the settings
 	startX := 50
-	startY := 70 // Adjust startY to account for the title
+	// Adjust startY to account for the title
+	startY := 70
 	lineHeight := 30
 
 	// Iterate through each setting and draw it
 	for i, setting := range ms.settings {
-		y := startY + (i * lineHeight) // Calculate the Y position for each setting
+		// Calculate the Y position for each setting
+		y := startY + (i * lineHeight)
 		selected := i == ms.selectedIndex
 		setting.Render(screen, startX, y, selected)
 	}
 
 	// Draw the help section below the settings
 	if ms.helpSection != nil {
-		y := startY + (len(ms.settings) * lineHeight) + 50 // Space between settings and help section
+		// Space between settings and help section
+		y := startY + (len(ms.settings) * lineHeight) + 50
 		ms.helpSection.Render(screen, startX, y, false)
 	}
 
@@ -224,13 +257,15 @@ func (ms *MenuScreen) Draw(screen *ebiten.Image) {
 	if ms.errorMessage != "" {
 		errorColor := color.RGBA{255, 0, 0, 255}
 		msgX := 50
-		msgY := screen.Bounds().Dy() - 100 // Start drawing a bit higher for word wrapping
+		// Start drawing a bit higher for word wrapping
+		msgY := screen.Bounds().Dy() - 100
 
 		// Word wrap the error message
-		lines := wordWrap(ms.errorMessage, 50) // Wrap at 50 characters per line
+		// Wrap at 50 characters per line
+		lines := wordWrap(ms.errorMessage, 50)
 		for i, line := range lines {
 			op := &text.DrawOptions{}
-			op.GeoM.Translate(float64(msgX), float64(msgY+(i*lineHeight))) // Use consistent line height
+			op.GeoM.Translate(float64(msgX), float64(msgY+(i*lineHeight)))
 			op.ColorScale.ScaleWithColor(errorColor)
 			text.Draw(screen, line, loadedFont, op)
 		}
