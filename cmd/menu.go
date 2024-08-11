@@ -40,11 +40,12 @@ func (ms *MenuScreen) initializeDefaultSettings() {
 		name: "Game Controls",
 		controls: []string{
 			"Arrow Keys/WASD - Move, Navigate menu",
+			"Space - Shoot",
 			"C - Insert credit",
 			"1 - Player 1 Start",
 			"2 - Player 2 Start",
 			"T - Tilt",
-			"Space - Shoot",
+			"Enter - Toggle setting",
 			"Tab - Toggle menu",
 			"Esc - Quit",
 		},
