@@ -46,5 +46,6 @@ You need Go and the dependencies that [Ebiten engine](https://ebitengine.org/en/
 Run `make` for various commands to run.
 
 ## Roadmap
-- [ ] DIP settings
-- [ ] Persistent high score
+- [x] DIP settings
+- ~~Persistent high score~~~ not realistically possible because Space Invaders code wipes memory on power-up, like a real arcade machine oughta
+- [ ] Color overlay (toggleable in settings)
