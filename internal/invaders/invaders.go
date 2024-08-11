@@ -3,7 +3,6 @@ package invaders
 import (
 	"embed"
 	"fmt"
-	"image/color"
 	"time"
 
 	"github.com/braheezy/space-invaders/internal/emulator"
@@ -29,6 +28,10 @@ type SpaceInvadersHardware struct {
 	// videoRAM holds the video memory where the graphical data for the display is stored.
 	// This memory is updated by the CPU to reflect changes in the game graphics.
 	videoRAM []byte
+
+	// video is the current image to display, the graphics for the current frame
+	video  *ebiten.Image
+	pixels []byte
 
 	// soundManager manages the playback of sound effects for the game.
 	soundManager *emulator.SoundManager
@@ -287,43 +290,49 @@ func (si *SpaceInvadersHardware) CyclesPerFrame() int {
 func (si *SpaceInvadersHardware) Init(memory *[65536]byte) {
 	// memory location 0x2400 to 0x3FFF contain the graphic data
 	si.videoRAM = memory[0x2400:0x4000]
+
+	si.video = ebiten.NewImage(videoWidth, videoHeight)
+	si.pixels = make([]byte, videoWidth*videoHeight*4)
 }
 
 func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
-	img := ebiten.NewImage(videoWidth, videoHeight)
-
 	// Iterate through each byte in the video RAM
 	for i, byteValue := range si.videoRAM {
-		// Calculate the original coordinates
 		originalX := (i % 32) * 8
 		originalY := i / 32
 
-		// Iterate through each bit in the byteValue
 		for bit := 0; bit < 8; bit++ {
-			// Determine if the current bit is "on" (1) or "off" (0)
 			pixelOn := byteValue&(1<<bit) != 0
-
-			// Calculate the original coordinates of the pixel
 			x := originalX + bit
 			y := originalY
 
-			// Transform coordinates for 90-degree counterclockwise rotation
 			rotatedX := y
 			rotatedY := videoHeight - 1 - x
 
-			// Set the color of the pixel
+			// Calculate the pixel's index in the array
+			index := (rotatedY*videoWidth + rotatedX) * 4
+
 			if pixelOn {
-				img.Set(rotatedX, rotatedY, color.White)
+				si.pixels[index] = 0xFF   // R
+				si.pixels[index+1] = 0xFF // G
+				si.pixels[index+2] = 0xFF // B
+				si.pixels[index+3] = 0xFF // A
 			} else {
-				img.Set(rotatedX, rotatedY, color.Black)
+				si.pixels[index] = 0x00   // R
+				si.pixels[index+1] = 0x00 // G
+				si.pixels[index+2] = 0x00 // B
+				si.pixels[index+3] = 0xFF // A (or 0x00 for transparent)
 			}
 		}
 	}
 
+	// Write the pixel data to the image
+	si.video.WritePixels(si.pixels)
+
 	// Scale and draw the offscreen image to the main screen
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(float64(displayScale), float64(displayScale))
-	screen.DrawImage(img, op)
+	screen.DrawImage(si.video, op)
 }
 
 // handleSoundBits handles the playing of sound effects based on changes in the sound control bits.
