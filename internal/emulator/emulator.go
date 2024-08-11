@@ -70,7 +70,7 @@ type CPU8080 struct {
 
 // EmulatorOptions describe tunable settings about emulator execution
 type EmulatorOptions struct {
-	UnlimitedTPS bool
+	LimitTPS bool
 }
 
 // Registers are the 7 primary registers for the 8080.
@@ -378,7 +378,7 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 	// Record when the frame started, in case we need to slow down later
 	// for historically accurate speeds.
 	var startTime time.Time
-	if !vm.Options.UnlimitedTPS {
+	if vm.Options.LimitTPS {
 		startTime = time.Now()
 	}
 
@@ -414,7 +414,7 @@ func (vm *CPU8080) runCycles(cycleCount int) {
 	}
 
 	// Handle slowdown for accurate speed emulation
-	if !vm.Options.UnlimitedTPS {
+	if vm.Options.LimitTPS {
 		elapsed := time.Since(startTime)
 		if remaining := vm.Hardware.FrameDuration() - elapsed; remaining > 0 {
 			time.Sleep(remaining)
@@ -510,10 +510,6 @@ func toUint16(high, low byte) uint16 {
 // Update fulfills the Game interface for ebiten.
 // This runs the emulator for one frame.
 func (vm *CPU8080) Update() error {
-
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-		return ebiten.Termination
-	}
 
 	// Reset cycle count
 	vm.cycleCount = 0

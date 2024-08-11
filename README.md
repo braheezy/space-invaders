@@ -3,6 +3,8 @@ An emulation of [Space Invaders (1978)](https://www.wikiwand.com/en/Space_Invade
 
 ![demo](./demo.webp)
 
+![settings](./settings.png)
+
 This project contains an 8080 emulator and the necessary fake hardware bits to run the original Space Invaders arcade ROM.
 
 ## Installation
@@ -46,5 +48,6 @@ You need Go and the dependencies that [Ebiten engine](https://ebitengine.org/en/
 Run `make` for various commands to run.
 
 ## Roadmap
-- [ ] DIP settings
-- [ ] Persistent high score
+- [x] DIP settings
+- ~~Persistent high score~~~ not realistically possible because Space Invaders code wipes memory on power-up, like a real arcade machine oughta
+- [ ] Color overlay (toggleable in settings)

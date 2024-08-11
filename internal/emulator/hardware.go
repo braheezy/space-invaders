@@ -66,6 +66,9 @@ type HardwareIO interface {
 
 	// FrameDuration returns the duration of a single frame in milliseconds
 	FrameDuration() time.Duration
+
+	// Perform cleanup of resources
+	Cleanup()
 }
 
 // NullHardware implements HardwareIO with no-op methods for testing purposes.
@@ -116,4 +119,7 @@ func (nh *NullHardware) ROM() []byte {
 }
 func (nh *NullHardware) FrameDuration() time.Duration {
 	return 17 * time.Millisecond
+}
+func (nh *NullHardware) Cleanup() {
+	// No-op
 }

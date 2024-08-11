@@ -3,7 +3,6 @@ package invaders
 import (
 	"embed"
 	"fmt"
-	"image/color"
 	"time"
 
 	"github.com/braheezy/space-invaders/internal/emulator"
@@ -29,6 +28,10 @@ type SpaceInvadersHardware struct {
 	// videoRAM holds the video memory where the graphical data for the display is stored.
 	// This memory is updated by the CPU to reflect changes in the game graphics.
 	videoRAM []byte
+
+	// video is the current image to display, the graphics for the current frame
+	video  *ebiten.Image
+	pixels []byte
 
 	// soundManager manages the playback of sound effects for the game.
 	soundManager *emulator.SoundManager
@@ -60,6 +63,11 @@ type SpaceInvadersHardware struct {
 	// lastSound2 holds the previous state of the sound control bits for port 5.
 	// This value is used to detect changes in the sound control bits and play the corresponding sounds.
 	lastSound2 byte
+
+	// DIP switch settings
+	ShipsSetting       int  // 3, 4, 5, or 6 ships
+	ExtraShipAt1000    bool // true = extra ship at 1000, false = extra ship at 1500
+	ShowCoinInfoOnDemo bool // true = show coin info, false = don't show
 }
 
 const (
@@ -154,21 +162,25 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 			 bit 6 = P2 right (1 if pressed)
 			 bit 7 = DIP7 Coin info displayed in demo screen 0=ON
 		*/
-		// TODO: Make DIP setting user configurable
-		dip3 := false
-		dip5 := false
-		if !dip3 && !dip5 {
-			// 3 ships
+		switch si.ShipsSetting {
+		case 3:
 			result |= 0x00
-		} else if dip3 && !dip5 {
-			// 4 ships
+		case 4:
 			result |= 0x01
-		} else if !dip3 && dip5 {
-			// 5 ships
+		case 5:
 			result |= 0x02
-		} else if dip3 && dip5 {
-			// 6 ships
+		case 6:
 			result |= 0x03
+		}
+
+		// Extra ship at 1000 or 1500
+		if si.ExtraShipAt1000 {
+			result |= 0x08 // Set bit 3 if extra ship is at 1000
+		}
+
+		// Show coin info on demo screen
+		if si.ShowCoinInfoOnDemo {
+			result |= 0x80 // Set bit 7 to display coin info in demo
 		}
 
 		// Tilt
@@ -180,11 +192,11 @@ func (si *SpaceInvadersHardware) In(addr byte) (byte, error) {
 			result |= 0x10
 		}
 		// Player 2 left
-		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 			result |= 0x20
 		}
 		// Player 2 right
-		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
 			result |= 0x40
 		}
 	case 0x03:
@@ -278,43 +290,49 @@ func (si *SpaceInvadersHardware) CyclesPerFrame() int {
 func (si *SpaceInvadersHardware) Init(memory *[65536]byte) {
 	// memory location 0x2400 to 0x3FFF contain the graphic data
 	si.videoRAM = memory[0x2400:0x4000]
+
+	si.video = ebiten.NewImage(videoWidth, videoHeight)
+	si.pixels = make([]byte, videoWidth*videoHeight*4)
 }
 
 func (si *SpaceInvadersHardware) Draw(screen *ebiten.Image) {
-	img := ebiten.NewImage(videoWidth, videoHeight)
-
 	// Iterate through each byte in the video RAM
 	for i, byteValue := range si.videoRAM {
-		// Calculate the original coordinates
 		originalX := (i % 32) * 8
 		originalY := i / 32
 
-		// Iterate through each bit in the byteValue
 		for bit := 0; bit < 8; bit++ {
-			// Determine if the current bit is "on" (1) or "off" (0)
 			pixelOn := byteValue&(1<<bit) != 0
-
-			// Calculate the original coordinates of the pixel
 			x := originalX + bit
 			y := originalY
 
-			// Transform coordinates for 90-degree counterclockwise rotation
 			rotatedX := y
 			rotatedY := videoHeight - 1 - x
 
-			// Set the color of the pixel
+			// Calculate the pixel's index in the array
+			index := (rotatedY*videoWidth + rotatedX) * 4
+
 			if pixelOn {
-				img.Set(rotatedX, rotatedY, color.White)
+				si.pixels[index] = 0xFF   // R
+				si.pixels[index+1] = 0xFF // G
+				si.pixels[index+2] = 0xFF // B
+				si.pixels[index+3] = 0xFF // A
 			} else {
-				img.Set(rotatedX, rotatedY, color.Black)
+				si.pixels[index] = 0x00   // R
+				si.pixels[index+1] = 0x00 // G
+				si.pixels[index+2] = 0x00 // B
+				si.pixels[index+3] = 0xFF // A (or 0x00 for transparent)
 			}
 		}
 	}
 
+	// Write the pixel data to the image
+	si.video.WritePixels(si.pixels)
+
 	// Scale and draw the offscreen image to the main screen
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(float64(displayScale), float64(displayScale))
-	screen.DrawImage(img, op)
+	screen.DrawImage(si.video, op)
 }
 
 // handleSoundBits handles the playing of sound effects based on changes in the sound control bits.
@@ -363,4 +381,7 @@ func (si *SpaceInvadersHardware) ROM() []byte {
 func (si *SpaceInvadersHardware) FrameDuration() time.Duration {
 	// 60 FPS -> 1000ms / 60 = 16.67ms per frame, approximate to 17ms
 	return 17 * time.Millisecond
+}
+func (si *SpaceInvadersHardware) Cleanup() {
+	si.soundManager.Cleanup()
 }

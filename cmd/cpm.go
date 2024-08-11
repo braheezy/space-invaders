@@ -26,13 +26,12 @@ var cpmCmd = &cobra.Command{
 		vm := emulator.NewEmulator(cpmHardware)
 		vm.StartInterruptRoutines()
 		vm.Logger = logger
-		vm.Options.UnlimitedTPS = true
 
 		ebiten.SetWindowTitle("cpm test")
-		if vm.Options.UnlimitedTPS {
-			ebiten.SetTPS(ebiten.SyncWithFPS)
-		} else {
+		if vm.Options.LimitTPS {
 			ebiten.SetTPS(60)
+		} else {
+			ebiten.SetTPS(ebiten.SyncWithFPS)
 		}
 		ebiten.SetWindowSize(vm.Hardware.Width()*vm.Hardware.Scale(), vm.Hardware.Height()*vm.Hardware.Scale())
 
