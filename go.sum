@@ -1,7 +1,7 @@
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
-github.com/braheezy/qoa v1.0.1 h1:j29FMMLVH8mLsEN4Rh6yyziejvO5sJ1eU0YoRXXJT8o=
-github.com/braheezy/qoa v1.0.1/go.mod h1:jnqLftWKRxq9xZ+9XDmzKoN7tYYimDHTCjWhePkFt1g=
+github.com/braheezy/qoa v1.0.2 h1:CTCd7XM+hKfqqsnBXwkSgj4Td3k3caseP3t0KZqIQp0=
+github.com/braheezy/qoa v1.0.2/go.mod h1:jnqLftWKRxq9xZ+9XDmzKoN7tYYimDHTCjWhePkFt1g=
 github.com/charmbracelet/lipgloss v0.12.1 h1:/gmzszl+pedQpjCOH+wFkZr/N90Snz40J/NR7A0zQcs=
 github.com/charmbracelet/lipgloss v0.12.1/go.mod h1:V2CiwIuhx9S1S1ZlADfOj9HmxeMAORuz5izHb0zGbB8=
 github.com/charmbracelet/log v0.4.0 h1:G9bQAcx8rWA2T3pWvx7YtPTPwgqpk7D68BX21IRW8ZM=

@@ -3,7 +3,7 @@ module github.com/braheezy/space-invaders
 go 1.22.5
 
 require (
-	github.com/braheezy/qoa v1.0.1
+	github.com/braheezy/qoa v1.0.2
 	github.com/charmbracelet/log v0.4.0
 	github.com/ebitengine/oto/v3 v3.2.0
 	github.com/go-audio/wav v1.1.0
